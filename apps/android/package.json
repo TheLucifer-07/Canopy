@@ -1,0 +1,9 @@
+{
+  "name": "@canopy/android",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "info": "echo \"Canopy Android client workspace - architectural reservation for Kotlin + Compose client\""
+  }
+}

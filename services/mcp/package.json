@@ -1,0 +1,14 @@
+{
+  "name": "@canopy/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@canopy/api-client": "workspace:*",
+    "@canopy/config": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.6.0"
+  }
+}

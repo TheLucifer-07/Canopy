@@ -1,0 +1,8 @@
+packages:
+  - "apps/*"
+  - "services/*"
+  - "packages/*"
+
+allowBuilds:
+  canvas: true
+  esbuild: true

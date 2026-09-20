@@ -1,0 +1,19 @@
+{
+  "name": "canopy-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter @canopy/web dev",
+    "dev:api": "pnpm --filter @canopy/api dev",
+    "build": "turbo run build",
+    "test": "node --test tests/unit/*.test.js && turbo run test",
+    "lint": "turbo run lint",
+    "verify": "node scripts/verify-foundation.js"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.2"
+  }
+}

@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0B0D10;
+  --surface: #11151A;
+  --elevated: #171B21;
+  --canvas: #07090C;
+  --border: #272D35;
+  --text: #F5F7FA;
+  --secondary: #9AA4B2;
+  --muted: #667085;
+  --primary: #8B5CF6;
+  --ai: #7C3AED;
+  --human: #38BDF8;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error: #EF4444;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+button,
+input,
+textarea {
+  border-radius: 6px;
+}
+
+.react-flow__node {
+  border-radius: 6px;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
