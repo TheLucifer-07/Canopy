@@ -23,8 +23,7 @@ describe('secret exposure guard', () => {
     for (const file of clientFiles) {
       const source = readFileSync(file, 'utf8');
       assert.equal(source.includes('GEMINI_API_KEY'), false, `${file} references GEMINI_API_KEY`);
-      assert.equal(source.includes('XAI_API_KEY'), false, `${file} references XAI_API_KEY`);
-      assert.equal(source.includes('SUPABASE_SERVICE_ROLE_KEY'), false, `${file} references SUPABASE_SERVICE_ROLE_KEY`);
+      assert.equal(source.includes('GROQ_API_KEY'), false, `${file} references GROQ_API_KEY`);
     }
   });
 });

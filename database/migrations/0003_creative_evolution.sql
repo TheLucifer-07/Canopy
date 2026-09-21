@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS project_forks (
   source_project_id uuid NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
   source_version_id uuid NOT NULL REFERENCES versions(id) ON DELETE RESTRICT,
   forked_project_id uuid NOT NULL UNIQUE REFERENCES projects(id) ON DELETE CASCADE,
-  created_by_user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+  created_by_user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -47,26 +47,6 @@ CREATE TABLE IF NOT EXISTS ai_requests (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-ALTER TABLE project_forks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE semantic_diffs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ai_requests ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "owners read project forks" ON project_forks
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM projects p WHERE p.id = project_forks.source_project_id AND p.owner_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM projects p WHERE p.id = project_forks.forked_project_id AND p.owner_id = auth.uid())
-  );
-
-CREATE POLICY "owners read semantic diffs" ON semantic_diffs
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM projects p WHERE p.id = semantic_diffs.project_id AND p.owner_id = auth.uid())
-  );
-
-CREATE POLICY "owners read ai requests" ON ai_requests
-  FOR SELECT USING (
-    project_id IS NULL
-    OR EXISTS (SELECT 1 FROM projects p WHERE p.id = ai_requests.project_id AND p.owner_id = auth.uid())
-  );
 
 CREATE OR REPLACE FUNCTION create_project_fork(
   source_version_id_arg uuid,

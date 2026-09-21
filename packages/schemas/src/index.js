@@ -64,6 +64,11 @@ export const ProjectParamsSchema = z.object({
   projectId: UuidSchema
 });
 
+export const HistorySearchQuerySchema = z.object({
+  query: z.string().trim().min(1).max(500),
+  limit: z.coerce.number().int().min(1).max(50).default(8)
+});
+
 export const VersionParamsSchema = z.object({
   versionId: UuidSchema
 });
@@ -241,4 +246,46 @@ export const MemorySchema = z.object({
   created_by_user_id: UuidSchema,
   created_at: IsoDateSchema,
   updated_at: IsoDateSchema
+});
+
+export const CopilotMessageSchema = z.object({
+  conversation_id: UuidSchema.optional(),
+  question: z.string().trim().min(1).max(4000)
+});
+
+export const CopilotConversationParamsSchema = z.object({
+  conversationId: UuidSchema
+});
+
+export const ApiTokenCreateSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  scopes: z.array(z.enum(['projects:read', 'versions:read', 'memory:read', 'memory:write', 'versions:write'])).min(1).max(5)
+});
+
+export const ApiTokenParamsSchema = z.object({
+  tokenId: UuidSchema
+});
+
+export const CopilotPlanSchema = z.object({
+  tools: z.array(z.enum([
+    'get_version', 'get_path', 'get_subtree', 'get_children',
+    'get_lineage_overview', 'get_diff', 'search_versions',
+    'search_memory', 'list_ai_generations'
+  ])).max(9),
+  arguments: z.record(z.record(z.any())).default({}),
+  resolved: z.boolean().default(true),
+  clarification: z.string().nullable().default(null)
+});
+
+export const CopilotCitationSchema = z.object({
+  kind: z.enum(['version', 'memory', 'diff']),
+  id: z.string().min(1),
+  label: z.string().optional()
+});
+
+export const CopilotAnswerSchema = z.object({
+  text: z.string(),
+  citations: z.array(CopilotCitationSchema),
+  tools_used: z.array(z.string()),
+  grounded: z.boolean()
 });

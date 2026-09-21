@@ -1,6 +1,6 @@
 -- 0002_atomic_version_creation.sql
 -- Phase 2 prerequisite: create the authoritative version/action/parent/provenance
--- write in one PostgreSQL transaction via a Supabase RPC.
+-- write in one PostgreSQL transaction via a database function.
 
 CREATE OR REPLACE FUNCTION create_core_version(
   project_id_arg uuid,

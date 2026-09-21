@@ -1,9 +1,9 @@
-import { SupabaseCoreRepository } from './supabaseCoreRepository.js';
+import { PostgresCoreRepository } from './postgresCoreRepository.js';
 
 export function createRepositories(overrides = {}) {
   return {
-    core: overrides.core || new SupabaseCoreRepository(overrides)
+    core: overrides.core || new PostgresCoreRepository(overrides)
   };
 }
 
-export { SupabaseCoreRepository };
+export { PostgresCoreRepository };

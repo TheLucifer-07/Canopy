@@ -79,14 +79,14 @@ function createSuccessRegistry({ observedFacets = {} } = {}) {
   return createProviderRegistry({
     providers: [
       fakeProvider({
-        id: 'grok',
+        id: 'groq',
         capabilities: [AI_CAPABILITIES.PATH_SUMMARY],
-        models: { summary: 'grok-4.6' },
+        models: { summary: 'openai/gpt-oss-20b' },
         methods: {
           async summarizePath() {
             return {
-              provider: 'grok',
-              model: 'grok-4.6',
+              provider: 'groq',
+              model: 'openai/gpt-oss-20b',
               summary: 'Brightness increased along the path.',
               confidence: 0.82,
               usage: { inputTokens: 12, outputTokens: 8, estimatedCost: 0.0001 },
@@ -202,9 +202,9 @@ describe('Phase 3 semantic diff intelligence', () => {
     const serviceB = new SemanticDiffService({
       repository,
       providerRegistry: createProviderRegistry({ providers: [fakeProvider({
-        id: 'grok',
+        id: 'groq',
         capabilities: [AI_CAPABILITIES.PATH_SUMMARY],
-        models: { summary: 'grok-4.6-other' },
+        models: { summary: 'openai/gpt-oss-120b' },
         methods: {}
       })] })
     });

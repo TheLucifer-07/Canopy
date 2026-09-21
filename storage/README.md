@@ -12,5 +12,5 @@ Canopy separates metadata and lineage in PostgreSQL from raw binary creative ass
   previews/{project_id}/{working_state_id}.webp
   ```
 - **Access Control:** Assets are never public. Reads are served via signed URLs verified through `project_assets` grants.
-- **Phase 1 Runtime:** Supabase Storage private bucket (`SUPABASE_STORAGE_BUCKET`, default `canopy-assets`).
-- **Local Note:** The API storage repository targets Supabase Storage, not MinIO.
+- **Runtime:** API-owned local/object storage behind the repository boundary. The default local implementation writes under `STORAGE_PATH` using the content-addressed key layout.
+- **Access Control:** The API verifies the authenticated user's project grant before returning bytes or a content URL. An object-storage adapter can replace the local implementation without changing Core operations.

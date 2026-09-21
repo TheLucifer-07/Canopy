@@ -1,11 +1,20 @@
 -- 0001_core_platform.sql
--- Phase 1 Core Platform schema for Supabase Postgres.
+-- Phase 1 Core Platform schema for standard PostgreSQL.
 
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+CREATE TABLE IF NOT EXISTS users (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email citext NOT NULL UNIQUE,
+  password_hash text NOT NULL,
+  display_name text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS profiles (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   display_name text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -13,7 +22,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 CREATE TABLE IF NOT EXISTS projects (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+  owner_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   name text NOT NULL CHECK (char_length(name) BETWEEN 1 AND 120),
   creative_goal text CHECK (creative_goal IS NULL OR char_length(creative_goal) <= 2000),
   version_sequence_counter integer NOT NULL DEFAULT 0,
@@ -51,10 +60,10 @@ CREATE TABLE IF NOT EXISTS versions (
   asset_id uuid NOT NULL REFERENCES assets(id) ON DELETE RESTRICT,
   sequence integer NOT NULL,
   actor_type text NOT NULL CHECK (actor_type IN ('human', 'model')),
-  actor_user_id uuid REFERENCES auth.users(id),
+  actor_user_id uuid REFERENCES users(id),
   actor_provider text,
   actor_model text,
-  actor_on_behalf_of_user_id uuid REFERENCES auth.users(id),
+  actor_on_behalf_of_user_id uuid REFERENCES users(id),
   origin_version_id uuid REFERENCES versions(id),
   is_root boolean NOT NULL DEFAULT false,
   capture_fidelity text NOT NULL DEFAULT 'full' CHECK (capture_fidelity IN ('full', 'partial', 'output_only')),
@@ -125,7 +134,7 @@ CREATE TABLE IF NOT EXISTS version_annotations (
 CREATE TABLE IF NOT EXISTS working_states (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   base_version_id uuid NOT NULL REFERENCES versions(id) ON DELETE RESTRICT,
   ops jsonb NOT NULL DEFAULT '[]',
   preview_asset_id uuid REFERENCES assets(id),
@@ -145,7 +154,7 @@ CREATE TABLE IF NOT EXISTS memories (
   superseded_by_memory_id uuid REFERENCES memories(id),
   confidence numeric(3,2),
   embedding vector(768),
-  created_by_user_id uuid NOT NULL REFERENCES auth.users(id),
+  created_by_user_id uuid NOT NULL REFERENCES users(id),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -154,7 +163,7 @@ CREATE INDEX IF NOT EXISTS idx_memories_project_status_type ON memories(project_
 
 CREATE TABLE IF NOT EXISTS idempotency_keys (
   key text PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   route text NOT NULL,
   request_hash text NOT NULL,
   response jsonb NOT NULL,
@@ -197,101 +206,3 @@ BEGIN
   RETURN next_sequence;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE assets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE project_assets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE versions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE version_parents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE actions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE provenance ENABLE ROW LEVEL SECURITY;
-ALTER TABLE version_annotations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE working_states ENABLE ROW LEVEL SECURITY;
-ALTER TABLE memories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE idempotency_keys ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "profiles own row" ON profiles
-  FOR ALL USING (id = auth.uid()) WITH CHECK (id = auth.uid());
-
-CREATE POLICY "project owners manage projects" ON projects
-  FOR ALL USING (owner_id = auth.uid()) WITH CHECK (owner_id = auth.uid());
-
-CREATE POLICY "owners read granted assets" ON assets
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM project_assets pa
-      JOIN projects p ON p.id = pa.project_id
-      WHERE pa.asset_id = assets.id AND p.owner_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "owners read project asset grants" ON project_assets
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM projects p WHERE p.id = project_assets.project_id AND p.owner_id = auth.uid())
-  );
-
-CREATE POLICY "owners read versions" ON versions
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM projects p WHERE p.id = versions.project_id AND p.owner_id = auth.uid())
-  );
-
-CREATE POLICY "owners read version parents" ON version_parents
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM versions v
-      JOIN projects p ON p.id = v.project_id
-      WHERE v.id = version_parents.version_id AND p.owner_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "owners read actions" ON actions
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM versions v
-      JOIN projects p ON p.id = v.project_id
-      WHERE v.id = actions.version_id AND p.owner_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "owners read provenance" ON provenance
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM versions v
-      JOIN projects p ON p.id = v.project_id
-      WHERE v.id = provenance.version_id AND p.owner_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "owners manage annotations" ON version_annotations
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM versions v
-      JOIN projects p ON p.id = v.project_id
-      WHERE v.id = version_annotations.version_id AND p.owner_id = auth.uid()
-    )
-  ) WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM versions v
-      JOIN projects p ON p.id = v.project_id
-      WHERE v.id = version_annotations.version_id AND p.owner_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "owners manage working states" ON working_states
-  FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "owners manage memories" ON memories
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM projects p WHERE p.id = memories.project_id AND p.owner_id = auth.uid())
-  ) WITH CHECK (
-    created_by_user_id = auth.uid()
-    AND EXISTS (SELECT 1 FROM projects p WHERE p.id = memories.project_id AND p.owner_id = auth.uid())
-  );
-
-CREATE POLICY "owners manage idempotency keys" ON idempotency_keys
-  FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
-
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('canopy-assets', 'canopy-assets', false)
-ON CONFLICT (id) DO NOTHING;

@@ -65,6 +65,21 @@ export class CanopyApiClient {
     return this.request(`/projects/${projectId}`);
   }
 
+  async listTokens() {
+    return this.request('/me/tokens');
+  }
+
+  async createToken(input) {
+    return this.request('/me/tokens', {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+  }
+
+  async revokeToken(tokenId) {
+    return this.request(`/me/tokens/${tokenId}`, { method: 'DELETE' });
+  }
+
   async forkProject(projectId, input) {
     return this.request(`/projects/${projectId}/fork`, {
       method: 'POST',
@@ -144,6 +159,11 @@ export class CanopyApiClient {
     return this.request(`/projects/${projectId}/memories${params.size ? `?${params}` : ''}`);
   }
 
+  async searchHistory(projectId, query = {}) {
+    const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value != null));
+    return this.request(`/projects/${projectId}/history/search${params.size ? `?${params}` : ''}`);
+  }
+
   async editMemory(memoryId, input) {
     return this.request(`/memories/${memoryId}`, {
       method: 'PATCH',
@@ -164,5 +184,38 @@ export class CanopyApiClient {
       method: 'POST',
       body: JSON.stringify(input)
     });
+  }
+
+  async streamCopilot(projectId, input, { signal, onEvent } = {}) {
+    const response = await fetch(`${this.baseUrl}/projects/${projectId}/copilot/messages`, {
+      method: 'POST',
+      signal,
+      headers: {
+        Accept: 'text/event-stream',
+        'Content-Type': 'application/json',
+        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {})
+      },
+      body: JSON.stringify(input)
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw Object.assign(new Error(data?.error?.message || `Request failed with status ${response.status}`), { status: response.status, error: data?.error });
+    }
+    if (!response.body) throw new Error('Copilot stream is unavailable.');
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || '';
+      for (const chunk of events) {
+        const event = chunk.match(/^event: (.+)$/m)?.[1];
+        const data = chunk.match(/^data: (.+)$/m)?.[1];
+        if (event && data) onEvent?.(event, JSON.parse(data));
+      }
+      if (done) break;
+    }
   }
 }

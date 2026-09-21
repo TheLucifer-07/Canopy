@@ -7,5 +7,8 @@
     ".": "./src/index.js",
     "./server": "./src/server.js"
   },
-  "scripts": {}
+  "scripts": {},
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  }
 }

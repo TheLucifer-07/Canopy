@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Background, Controls, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { createClient } from '@supabase/supabase-js';
 import { motion } from 'framer-motion';
 import {
   GitBranch,
@@ -10,9 +9,11 @@ import {
   Loader2,
   LogOut,
   Maximize2,
+  MessageCircle,
   Plus,
   RotateCw,
   Save,
+  Send,
   Scissors,
   SlidersHorizontal,
   Type,
@@ -25,13 +26,6 @@ import { LIMITS } from '@canopy/config';
 import { Button, Badge, cn } from '@canopy/ui';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/v1';
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
-
 const useEditorStore = create((set, get) => ({
   baseVersionId: null,
   ops: [],
@@ -78,27 +72,14 @@ function useApi(session) {
 export default function App() {
   const [session, setSession] = useState(null);
   const [view, setView] = useState({ name: 'projects' });
-  const [authChecked, setAuthChecked] = useState(!supabase);
+  const [authChecked, setAuthChecked] = useState(false);
 
   React.useEffect(() => {
-    if (!supabase) return;
-    let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      setAuthChecked(true);
-    });
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setAuthChecked(true);
-    });
-    return () => {
-      active = false;
-      subscription.subscription.unsubscribe();
-    };
+    const token = window.localStorage.getItem('canopy_access_token');
+    if (token) setSession({ access_token: token });
+    setAuthChecked(true);
   }, []);
 
-  if (!supabase) return <MissingConfig />;
   if (!authChecked) return <FullScreenState label="Checking session" />;
   if (!session) return <AuthScreen />;
 
@@ -107,21 +88,8 @@ export default function App() {
       session={session}
       view={view}
       setView={setView}
-      onSignOut={() => supabase.auth.signOut()}
+      onSignOut={() => { window.localStorage.removeItem('canopy_access_token'); setSession(null); }}
     />
-  );
-}
-
-function MissingConfig() {
-  return (
-    <div className="min-h-screen bg-bg text-text flex items-center justify-center p-6">
-      <div className="max-w-md border border-border bg-surface p-5">
-        <h1 className="text-lg font-semibold">Supabase public config required</h1>
-        <p className="mt-2 text-sm text-muted">
-          Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in `.env` to use the authenticated workspace.
-        </p>
-      </div>
-    </div>
   );
 }
 
@@ -136,11 +104,13 @@ function AuthScreen() {
     event.preventDefault();
     setBusy(true);
     setError('');
-    const result = mode === 'sign-up'
-      ? await supabase.auth.signUp({ email, password })
-      : await supabase.auth.signInWithPassword({ email, password });
+    const response = await fetch(`${API_URL}/auth/${mode === 'sign-up' ? 'register' : 'login'}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password })
+    });
+    const result = await response.json();
     setBusy(false);
-    if (result.error) setError(result.error.message);
+    if (!response.ok) setError(result.message || 'Authentication failed.');
+    else { window.localStorage.setItem('canopy_access_token', result.access_token); window.location.reload(); }
   }
 
   return (
@@ -237,6 +207,11 @@ function ProjectWorkspace({ api, projectId, openProject, onBack, onSignOut }) {
   const [commitOpen, setCommitOpen] = useState(false);
   const [diffResult, setDiffResult] = useState(null);
   const [memoryStatement, setMemoryStatement] = useState('');
+  const [copilotQuestion, setCopilotQuestion] = useState('');
+  const [copilotAnswer, setCopilotAnswer] = useState(null);
+  const [copilotConversationId, setCopilotConversationId] = useState(null);
+  const [copilotBusy, setCopilotBusy] = useState(false);
+  const copilotAbort = React.useRef(null);
   const editor = useEditorStore();
 
   const project = useQuery({ queryKey: ['project', projectId], queryFn: () => api.getProject(projectId) });
@@ -360,6 +335,32 @@ function ProjectWorkspace({ api, projectId, openProject, onBack, onSignOut }) {
     ? editor.ops
     : getVersionOps(selectedVersion);
 
+  async function askCopilot() {
+    if (!copilotQuestion.trim() || copilotBusy) return;
+    copilotAbort.current?.abort();
+    copilotAbort.current = new AbortController();
+    setCopilotBusy(true);
+    setCopilotAnswer({ text: '', citations: [], grounded: false, error: null, tools: [] });
+    const question = copilotQuestion.trim();
+    setCopilotQuestion('');
+    try {
+      await api.streamCopilot(projectId, { conversation_id: copilotConversationId || undefined, question }, {
+        signal: copilotAbort.current.signal,
+        onEvent(event, data) {
+          if (event === 'plan') setCopilotAnswer((current) => ({ ...current, tools: data.tools || [] }));
+          if (event === 'token') setCopilotAnswer((current) => ({ ...current, text: `${current.text}${data.text || ''}` }));
+          if (event === 'citations') setCopilotAnswer((current) => ({ ...current, citations: data.citations || [], grounded: Boolean(data.grounded) }));
+          if (event === 'done') setCopilotConversationId(data.conversation_id || copilotConversationId);
+          if (event === 'error') setCopilotAnswer((current) => ({ ...current, error: data.message || 'Copilot could not answer.' }));
+        }
+      });
+    } catch (error) {
+      if (error.name !== 'AbortError') setCopilotAnswer((current) => ({ ...current, error: error.message }));
+    } finally {
+      setCopilotBusy(false);
+    }
+  }
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-bg text-text">
       <TopBar
@@ -405,6 +406,16 @@ function ProjectWorkspace({ api, projectId, openProject, onBack, onSignOut }) {
           onMerge={() => mergeMutation.mutate()}
           onDiff={() => selectedVersion && diffMutation.mutate()}
           onCreateMemory={() => memoryMutation.mutate()}
+          copilotQuestion={copilotQuestion}
+          setCopilotQuestion={setCopilotQuestion}
+          copilotAnswer={copilotAnswer}
+          copilotBusy={copilotBusy}
+          onAskCopilot={askCopilot}
+          onCancelCopilot={() => copilotAbort.current?.abort()}
+          onCitation={(citation) => {
+            if (citation.kind === 'version') setSelectedVersionId(citation.id);
+            if (citation.kind === 'memory') document.getElementById(`memory-${citation.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }}
           busy={forkMutation.isPending || mergeMutation.isPending || diffMutation.isPending || memoryMutation.isPending}
         />
         <section className="col-span-3 bg-surface max-lg:col-span-2">
@@ -548,6 +559,13 @@ function VersionDetail({
   onMerge,
   onDiff,
   onCreateMemory,
+  copilotQuestion,
+  setCopilotQuestion,
+  copilotAnswer,
+  copilotBusy,
+  onAskCopilot,
+  onCancelCopilot,
+  onCitation,
   busy
 }) {
   const action = getVersionAction(version);
@@ -608,16 +626,55 @@ function VersionDetail({
             </Button>
             <div className="mt-3 space-y-2">
               {memories.slice(0, 3).map((memory) => (
-                <div key={memory.id} className="border border-border/70 p-2 text-xs text-secondary">
+                <div id={`memory-${memory.id}`} key={memory.id} className="border border-border/70 p-2 text-xs text-secondary">
                   <div className="font-mono text-[10px] uppercase text-muted">{memory.status} · {memory.origin}</div>
                   {memory.statement}
                 </div>
               ))}
             </div>
           </div>
+          <CopilotPanel
+            question={copilotQuestion}
+            setQuestion={setCopilotQuestion}
+            answer={copilotAnswer}
+            busy={copilotBusy}
+            onAsk={onAskCopilot}
+            onCancel={onCancelCopilot}
+            onCitation={onCitation}
+          />
         </div>
       )}
     </aside>
+  );
+}
+
+function CopilotPanel({ question, setQuestion, answer, busy, onAsk, onCancel, onCitation }) {
+  return (
+    <div className="border border-ai/40 bg-bg p-3">
+      <div className="flex items-center gap-2 text-xs font-semibold text-text"><MessageCircle className="h-4 w-4 text-ai" /> Copilot</div>
+      <textarea
+        aria-label="Ask Copilot about this project"
+        className="mt-2 h-16 w-full resize-none border border-border bg-elevated px-2 py-1 text-xs outline-none focus:border-ai"
+        placeholder="Ask about versions, decisions, or changes..."
+        value={question}
+        onChange={(event) => setQuestion(event.target.value)}
+        onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') onAsk(); }}
+      />
+      <div className="mt-2 flex gap-2">
+        <Button className="flex-1 border border-ai/50 bg-elevated hover:border-ai" onClick={onAsk} disabled={busy || !question.trim()}>
+          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+          Ask
+        </Button>
+        {busy ? <Button aria-label="Cancel Copilot" className="border border-border bg-elevated" onClick={onCancel}><RotateCw className="h-4 w-4" /></Button> : null}
+      </div>
+      {answer ? (
+        <div className="mt-3 border border-border/70 bg-surface p-2">
+          {answer.error ? <div className="text-xs text-error">{answer.error}</div> : <div className="whitespace-pre-wrap text-xs leading-5 text-secondary">{answer.text || 'Consulting project history...'}</div>}
+          {answer.citations?.length ? <div className="mt-2 flex flex-wrap gap-1">{answer.citations.map((citation) => <button type="button" key={`${citation.kind}:${citation.id}`} className="cursor-pointer" title={`Open ${citation.kind} evidence`} onClick={() => onCitation?.(citation)}><Badge variant="model">{citation.kind}:{citation.id.slice(0, 8)}</Badge></button>)}</div> : null}
+          {answer.text && !answer.grounded ? <div className="mt-2 text-[10px] uppercase text-warning">Not grounded in project history</div> : null}
+        </div>
+      ) : <div className="mt-2 text-[11px] text-muted">Ask about lineage, diffs, prompts, or Creative Memory.</div>}
+    </div>
   );
 }
 

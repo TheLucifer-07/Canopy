@@ -25,7 +25,7 @@ async function testApi() {
       throw new Error(`Expected 200, got ${v1HealthRes.statusCode}`);
     }
 
-    // Phase 1 protects project routes with Supabase Auth.
+    // Project routes require a valid Canopy API access token.
     const projectsRes = await server.inject({
       method: 'GET',
       url: '/v1/projects'

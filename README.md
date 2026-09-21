@@ -48,7 +48,7 @@ canopy/
 │   ├── migrations/              Forward-only PostgreSQL + pgvector migrations
 │   └── seeds/                   Demo project seed data
 │
-├── storage/                     Supabase Storage boundary notes
+├── storage/                     Local/object storage boundary notes
 │
 ├── tests/
 │   ├── unit/                    Domain and schema unit tests
@@ -70,17 +70,17 @@ canopy/
 
 ## 3. Current Implementation Phase
 
-**Current Phase: Phase 3 Creative Evolution Foundation.**
+**Current Phase: Phase 4 Copilot and grounded retrieval hardening.**
 
 Phase 1 established the authoritative Canopy Core:
-- Supabase Auth is the authentication boundary.
-- Supabase PostgreSQL + pgvector store project, asset, action, version, parent, working-state, and memory metadata.
-- Supabase Storage stores private creative asset bytes.
+- API-owned authentication issues signed access tokens.
+- PostgreSQL + pgvector store project, asset, action, version, parent, working-state, memory, and Copilot metadata.
+- The API storage abstraction stores private creative asset bytes locally by default.
 - The API is the only write boundary.
 - The domain package stays pure JavaScript with no HTTP, database, browser, or storage imports.
 
 Phase 2 adds the first real web creative workspace:
-- authenticated Supabase web session
+- authenticated Canopy API session
 - project list/create/open
 - image import through the Canopy API
 - canvas-first workspace shell
@@ -111,26 +111,27 @@ This installs dependencies across all workspaces (`apps/*`, `services/*`, `packa
 
 ---
 
-## 5. Supabase Setup
+## 5. PostgreSQL Setup
 
-Create a Supabase project, then run the forward-only SQL migrations in order:
+Start PostgreSQL with `docker compose up -d postgres` (or use an existing PostgreSQL 16+ instance with pgvector), then run the forward-only SQL migrations in order:
 
 ```bash
 database/migrations/0000_init_pgvector.sql
 database/migrations/0001_core_platform.sql
 database/migrations/0002_atomic_version_creation.sql
 database/migrations/0003_creative_evolution.sql
+database/migrations/0004_copilot_retrieval.sql
 ```
 
-The migrations enable pgvector, create the private `canopy-assets` storage bucket, core tables, RLS policies, ownership checks, lineage parent tables, immutability triggers, the transactional `create_core_version(...)` RPC, and Phase 3 fork/diff/AI request foundations.
+The migrations enable pgvector, create API-owned auth and core tables, ownership-safe query targets, lineage parent tables, immutability triggers, the transactional `create_core_version(...)` function, Phase 3 fork/diff/AI request foundations, and Phase 4 Copilot retrieval tables.
 
 Copy `.env.example` to `.env` and fill only the values required for your environment:
 
-- Browser-safe: `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
-- Server-only: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`
-- Future AI boundaries: `GEMINI_*`, `XAI_*`, `GROK_*`, `AI_DAILY_*`
+- Browser-safe: `VITE_API_URL`
+- Server-only: `DATABASE_URL` or `PG*`, `AUTH_JWT_SECRET`, `STORAGE_PATH`
+- Server AI boundaries: `GEMINI_*`, `GROQ_*`, `AI_DAILY_*`
 
-Never expose `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, or `XAI_API_KEY` to Vite or browser code.
+Never expose `AUTH_JWT_SECRET`, `GEMINI_API_KEY`, or `GROQ_API_KEY` to Vite or browser code.
 
 ---
 
@@ -162,7 +163,7 @@ Health endpoint: `http://localhost:3000/health`
 
 ## 8. Phase 2 Workspace Flow
 
-All project endpoints require `Authorization: Bearer <Supabase access token>`. The web app obtains this with Supabase Auth and sends it through `packages/api-client`.
+All project endpoints require `Authorization: Bearer <Canopy access token>`. The web app obtains this from the API-owned `/v1/auth/register` or `/v1/auth/login` endpoints and sends it through `packages/api-client`.
 
 Implemented:
 - `POST /v1/projects`
@@ -192,10 +193,10 @@ Sign in -> Create Project -> Upload Image -> Import V1 -> Edit Working State -> 
 
 Versions are immutable. Parent edges are ordered and multi-parent capable. Working State is local/editor state until the explicit Save Version action succeeds.
 
-The browser never writes directly to Supabase tables or Storage. Authoritative operations go:
+The browser never writes directly to PostgreSQL or object storage. Authoritative operations go:
 
 ```text
-Web -> Canopy API -> Core operations -> Supabase PostgreSQL + Storage
+Web -> Canopy API -> Core operations -> PostgreSQL + storage abstraction
 ```
 
 ---
@@ -209,7 +210,7 @@ pnpm verify
 node scripts/test-api-startup.js
 ```
 
-The committed tests cover pure domain invariants and route-level Core behavior with injected repositories. Database constraints and RLS are encoded in migrations; run them against Supabase before exercising the real repository.
+The committed tests cover pure domain invariants and route-level Core behavior with injected repositories. Database constraints and ownership checks are encoded in migrations and API repositories; run them against PostgreSQL before exercising the real repository.
 
 ---
 
@@ -218,9 +219,9 @@ The committed tests cover pure domain invariants and route-level Core behavior w
 Reserved for later phases:
 
 - AI image generation or editing
-- live Gemini or Grok provider calls
+- live Gemini or Groq provider calls
 - observed visual diff from provider output
-- Copilot and RAG
+- Android Copilot and expanded Copilot/MCP integrations
 - MCP tools
 - Android client features
 - AI memory extraction

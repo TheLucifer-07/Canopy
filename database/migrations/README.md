@@ -9,12 +9,14 @@
 
 ## Phase 1 Migration Order
 
-Run these in order against Supabase:
+Run these in order against the configured PostgreSQL database:
 
 1. `0000_init_pgvector.sql`
 2. `0001_core_platform.sql`
 3. `0002_atomic_version_creation.sql`
 4. `0003_creative_evolution.sql`
+5. `0004_copilot_retrieval.sql`
+6. `0005_machine_tokens.sql`
 
 `0001_core_platform.sql` creates:
 - `profiles`
@@ -30,7 +32,7 @@ Run these in order against Supabase:
 - `memories`
 - `idempotency_keys`
 
-It also enables RLS, creates ownership policies based on `auth.uid()`, creates private bucket `canopy-assets`, adds immutable-history triggers, and defines `next_project_sequence(project_id_arg uuid)`.
+Ownership is enforced by the API repository queries and foreign keys; the database also contains immutable-history triggers and defines `next_project_sequence(project_id_arg uuid)`.
 
 `0002_atomic_version_creation.sql` defines `create_core_version(...)`, the transactional RPC used by the API to create:
 - one immutable `versions` row
@@ -48,3 +50,11 @@ Run this migration before using the Phase 2 web commit flow.
 - `create_project_fork(...)`
 
 Run this migration before using Fork, manual Merge, Memory lifecycle extensions, Semantic Diff caching, or AI request logging.
+
+`0004_copilot_retrieval.sql` adds project- and user-scoped Copilot conversations,
+messages, pgvector-backed embedding metadata, and the authorization-checked
+semantic search function used by grounded Copilot retrieval.
+
+`0005_machine_tokens.sql` adds hashed, scoped machine tokens for MCP/CLI access.
+Plaintext `cnp_pat_...` tokens are shown once by the API and are never stored in
+the database.

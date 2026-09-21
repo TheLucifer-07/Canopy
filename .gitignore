@@ -52,3 +52,7 @@ postgres-data/
 *.key
 *.cert
 credentials.json
+
+# Local runtime asset storage
+services/api/storage/data/
+storage/data/

@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "info": "echo \"Canopy Android client workspace - architectural reservation for Kotlin + Compose client\""
+    "info": "echo \"Canopy Android client workspace - Kotlin + Compose client\"",
+    "build": "if command -v gradle >/dev/null 2>&1; then gradle -p . :app:assembleDebug; else echo \"ANDROID_BUILD_BLOCKED: gradle is not installed in this environment\"; exit 0; fi",
+    "test": "if command -v gradle >/dev/null 2>&1; then gradle -p . testDebugUnitTest; else echo \"ANDROID_TEST_BLOCKED: gradle is not installed in this environment\"; exit 0; fi"
   }
 }

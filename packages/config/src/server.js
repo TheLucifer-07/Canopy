@@ -1,3 +1,14 @@
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'node:url';
+
+// Workspace commands can execute a package with that package as the current
+// directory. Resolve the repository-root env file from this server-only module
+// so API startup has the same configuration in both invocation styles.
+dotenv.config({
+  path: fileURLToPath(new URL('../../../.env', import.meta.url)),
+  override: false
+});
+
 /**
  * @canopy/config/server — server-only configuration
  *
@@ -16,7 +27,7 @@ function requireEnv(name) {
 }
 
 const geminiApiKey = process.env.GEMINI_API_KEY || '';
-const xaiApiKey = process.env.XAI_API_KEY || '';
+const groqApiKey = process.env.GROQ_API_KEY || '';
 
 const SUPPORTED_MODELS = Object.freeze({
   geminiImage: new Set([
@@ -27,7 +38,12 @@ const SUPPORTED_MODELS = Object.freeze({
   ]),
   geminiVision: new Set([
     'gemini-3-flash',
+    'gemini-3-flash-preview',
     'gemini-3-pro',
+    'gemini-3.1-pro-preview',
+    'gemini-3.6-flash',
+    'gemini-3.7-flash',
+    'gemini-3.8-flash',
     'gemini-2.5-flash',
     'gemini-2.5-pro',
     'gemini-2.0-flash'
@@ -36,8 +52,9 @@ const SUPPORTED_MODELS = Object.freeze({
     'gemini-embedding-2',
     'gemini-embedding-001'
   ]),
-  grokText: new Set([
-    'grok-4.6'
+  groqText: new Set([
+    'openai/gpt-oss-120b',
+    'openai/gpt-oss-20b'
   ])
 });
 
@@ -48,8 +65,8 @@ function isConfiguredModel(value, supported) {
 const geminiImageModel = process.env.GEMINI_IMAGE_MODEL || '';
 const geminiVisionModel = process.env.GEMINI_VISION_MODEL || '';
 const geminiEmbeddingModel = process.env.GEMINI_EMBEDDING_MODEL || '';
-const grokReasoningModel = process.env.GROK_REASONING_MODEL || '';
-const grokSummaryModel = process.env.GROK_SUMMARY_MODEL || '';
+const groqReasoningModel = process.env.GROQ_REASONING_MODEL || '';
+const groqSummaryModel = process.env.GROQ_SUMMARY_MODEL || '';
 
 export const serverConfig = Object.freeze({
   env: process.env.NODE_ENV || 'development',
@@ -58,12 +75,22 @@ export const serverConfig = Object.freeze({
   apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:3000/v1',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
 
-  supabase: {
-    url: requireEnv('SUPABASE_URL'),
-    anonKey: requireEnv('SUPABASE_ANON_KEY'),
-    // !! SERVICE ROLE — only available in server context, never exposed to browser
-    serviceRoleKey: requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
-    storageBucket: process.env.SUPABASE_STORAGE_BUCKET || 'canopy-assets'
+  database: {
+    url: process.env.DATABASE_URL || '',
+    host: process.env.PGHOST || '127.0.0.1',
+    port: parseInt(process.env.PGPORT || '5432', 10),
+    database: process.env.PGDATABASE || 'canopy',
+    user: process.env.PGUSER || process.env.USER || 'canopy',
+    password: process.env.PGPASSWORD || '',
+    ssl: process.env.PGSSL === 'true'
+  },
+  auth: {
+    jwtSecret: process.env.AUTH_JWT_SECRET || 'canopy-development-only-change-me',
+    tokenTtlSeconds: parseInt(process.env.AUTH_TOKEN_TTL_SECONDS || '604800', 10)
+  },
+  storage: {
+    root: process.env.STORAGE_PATH || './storage/data',
+    publicBaseUrl: process.env.API_BASE_URL || 'http://localhost:3000/v1'
   },
 
   ai: {
@@ -76,13 +103,13 @@ export const serverConfig = Object.freeze({
     geminiVisionConfigured: Boolean(geminiApiKey) && isConfiguredModel(geminiVisionModel, SUPPORTED_MODELS.geminiVision),
     geminiEmbeddingModel,
     geminiEmbeddingConfigured: Boolean(geminiApiKey) && isConfiguredModel(geminiEmbeddingModel, SUPPORTED_MODELS.geminiEmbedding),
-    xaiApiKey: xaiApiKey || null,
-    xaiConfigured: Boolean(xaiApiKey),
-    xaiBaseUrl: process.env.XAI_BASE_URL || 'https://api.x.ai/v1',
-    grokReasoningModel,
-    grokReasoningConfigured: Boolean(xaiApiKey) && isConfiguredModel(grokReasoningModel, SUPPORTED_MODELS.grokText),
-    grokSummaryModel,
-    grokSummaryConfigured: Boolean(xaiApiKey) && isConfiguredModel(grokSummaryModel, SUPPORTED_MODELS.grokText),
+    groqApiKey: groqApiKey || null,
+    groqConfigured: Boolean(groqApiKey),
+    groqBaseUrl: process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1',
+    groqReasoningModel,
+    groqReasoningConfigured: Boolean(groqApiKey) && isConfiguredModel(groqReasoningModel, SUPPORTED_MODELS.groqText),
+    groqSummaryModel,
+    groqSummaryConfigured: Boolean(groqApiKey) && isConfiguredModel(groqSummaryModel, SUPPORTED_MODELS.groqText),
     dailyCostLimit: process.env.AI_DAILY_COST_LIMIT || '',
     dailyTokenLimit: process.env.AI_DAILY_TOKEN_LIMIT || '',
     supportedModels: SUPPORTED_MODELS
