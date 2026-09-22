@@ -1,6 +1,6 @@
 # Canopy Android
 
-Phase 5 adds an Android client boundary under `apps/android`.
+Phase 1 adds the React Native public-facing Android foundation under `apps/android`.
 
 ## Architecture
 
@@ -15,43 +15,38 @@ Core internals directly.
 
 ## Stack
 
-- Kotlin
-- Jetpack Compose
-- Compose Navigation-ready structure
-- Ktor client
-- kotlinx.serialization
-- Room cache for projects and versions
-- DataStore token boundary
-- Coil for immutable asset URLs
-- Hilt
+- JavaScript
+- React Native
+- Expo
+- `@canopy/api-client`
+- Shared Canopy visual language
 
 ## Screens
 
-- Projects: project list with loading, empty, and error state hooks.
-- Lineage: vertically scrollable versions from the existing lineage API.
-- Version Detail: asset image, metadata, action, actor/model, parent/version info.
-- Copilot field: present from Version Detail/project context. Provider calls remain
-  server-side through the Canopy API.
+- Home / public product overview.
+- Features.
+- How Canopy Works.
+- Use Cases.
+- Developers.
+- Documentation.
+- Pricing.
 
 ## API Contract
 
-DTOs mirror current `/v1` REST responses. There is no OpenAPI generation pipeline
-in the current repository, so this phase adds the smallest deterministic Kotlin
-contract layer and documents that generated clients should replace it when
-`docs/api/openapi.json` generation lands.
+The app imports `@canopy/api-client`, the same JavaScript client used by Web and
+the shared API tooling. Later authenticated/mobile workflows remain intentionally
+outside Phase 1.
 
 ## Auth And Cache
 
-The app uses the same email/password API as Web. Passwords are never stored.
-Access tokens are encrypted with an Android Keystore AES key and the ciphertext is
-stored in DataStore. Room is read-only cache, not source of truth.
+Authentication and token storage are not part of Phase 1 Android.
 
-## Build
+## Build And APK
 
 ```bash
 pnpm --filter @canopy/android build
 ```
 
-In this environment, Gradle is not installed, so Android compile/emulator
-verification is blocked. The package scripts report that explicitly instead of
-pretending the app was compiled.
+This runs `expo export` and validates the JavaScript bundle. Use `pnpm --filter
+@canopy/android android` to prebuild and launch the React Native app on a local
+Android emulator or device.

@@ -54,8 +54,15 @@ export async function v1Routes(fastify) {
     if (typeof email !== 'string' || !/^\S+@\S+\.\S+$/.test(email) || typeof password !== 'string' || password.length < 8) {
       throw new ApiError(ERROR_CODES.VALIDATION_FAILED, 'A valid email and password of at least 8 characters are required.', { statusCode: 422 });
     }
-    const result = await fastify.repositories.core.pool.query('INSERT INTO users(email,password_hash,display_name) VALUES(lower($1),$2,$3) RETURNING id,email,display_name', [email, hashPassword(password), displayName]);
-    return reply.status(201).send({ user: result.rows[0], access_token: issueAccessToken(result.rows[0]) });
+    try {
+      const result = await fastify.repositories.core.pool.query('INSERT INTO users(email,password_hash,display_name) VALUES(lower($1),$2,$3) RETURNING id,email,display_name', [email, hashPassword(password), displayName]);
+      return reply.status(201).send({ user: result.rows[0], access_token: issueAccessToken(result.rows[0]) });
+    } catch (err) {
+      if (err?.code === '23505') {
+        throw new ApiError(ERROR_CODES.VALIDATION_FAILED, 'An account with this email already exists.', { statusCode: 409 });
+      }
+      throw err;
+    }
   });
 
   fastify.post('/auth/login', async (request) => {

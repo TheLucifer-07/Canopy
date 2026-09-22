@@ -52,10 +52,30 @@ export class PostgresCoreRepository {
       const asset = one(await client.query('SELECT a.* FROM assets a JOIN project_assets pa ON pa.asset_id=a.id WHERE pa.project_id=$1 AND a.id=$2', [projectId,assetId])); if (!asset) throw new ApiError(ERROR_CODES.ASSET_NOT_FOUND,'Asset not found.',{statusCode:404});
       if (!isRoot) for (const parent of parents) { const p=one(await client.query('SELECT v.* FROM versions v JOIN projects pr ON pr.id=v.project_id WHERE v.id=$1 AND pr.owner_id=$2 AND v.project_id=$3',[parent.parent_version_id,ownerId,projectId])); if(!p) throw new ApiError(ERROR_CODES.INVALID_PARENT,'Parent version must belong to the same project.',{statusCode:422}); }
       const sequence = project.version_sequence_counter + 1; await client.query('UPDATE projects SET version_sequence_counter=$2,updated_at=now() WHERE id=$1',[projectId,sequence]);
-      const v = one(await client.query(`INSERT INTO versions(project_id,asset_id,sequence,actor_type,actor_user_id,is_root,capture_fidelity) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *`,[projectId,assetId,sequence,actor.type,actor.userId,isRoot,action.captureFidelity||'full']));
+      const v = one(await client.query(
+        `INSERT INTO versions(
+          project_id,asset_id,sequence,actor_type,actor_user_id,actor_provider,actor_model,
+          actor_on_behalf_of_user_id,is_root,capture_fidelity
+        ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+        [
+          projectId,
+          assetId,
+          sequence,
+          actor.type,
+          actor.userId || null,
+          actor.provider || null,
+          actor.model || null,
+          actor.onBehalfOfUserId || null,
+          isRoot,
+          action.captureFidelity || 'full'
+        ]
+      ));
       for (const p of (parents||[])) await client.query('INSERT INTO version_parents(version_id,parent_version_id,parent_index,role) VALUES($1,$2,$3,$4)',[v.id,p.parent_version_id,p.parent_index,p.role]);
       await client.query('INSERT INTO actions(version_id,type,params,declared_delta,replayable,surface) VALUES($1,$2,$3,$4,$5,$6)',[v.id,action.type,action.params,action.declaredDelta,action.replayable,action.surface]);
-      await client.query('INSERT INTO provenance(version_id,source_tool,parameters,missing_fields) VALUES($1,$2,$3,$4)',[v.id,action.sourceTool||'canopy-api',action.params,[]]);
+      await client.query(
+        'INSERT INTO provenance(version_id,source_tool,provider,model,prompt,parameters,missing_fields) VALUES($1,$2,$3,$4,$5,$6,$7)',
+        [v.id,action.sourceTool||'canopy-api',action.provider||null,action.model||null,action.prompt||null,action.params,action.missingFields||[]]
+      );
       await client.query('INSERT INTO version_annotations(version_id,label,note) VALUES($1,$2,$3)',[v.id,annotation.label||null,annotation.note||null]); await client.query('COMMIT'); return v;
     } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
   }

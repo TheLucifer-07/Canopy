@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Canopy",
+    "slug": "canopy",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "canopy",
+    "android": {
+      "package": "com.canopy.android",
+      "adaptiveIcon": { "backgroundColor": "#0B0D10" }
+    }
+  }
+}

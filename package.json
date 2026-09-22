@@ -11,7 +11,9 @@
     "build": "turbo run build",
     "test": "node --test tests/unit/*.test.js && turbo run test",
     "lint": "turbo run lint",
-    "verify": "node scripts/verify-foundation.js"
+    "verify": "node scripts/verify-foundation.js",
+    "db:migrate": "psql -v ON_ERROR_STOP=1 -f database/migrations/0000_init_pgvector.sql -f database/migrations/0001_core_platform.sql -f database/migrations/0002_atomic_version_creation.sql -f database/migrations/0003_creative_evolution.sql -f database/migrations/0004_copilot_retrieval.sql -f database/migrations/0005_machine_tokens.sql",
+    "db:seed": "node database/seeds/seed.js"
   },
   "devDependencies": {
     "turbo": "^2.11.2"

@@ -49,6 +49,20 @@ export class CanopyApiClient {
     return this.request('/health');
   }
 
+  async register({ email, password, display_name = null }) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, display_name })
+    });
+  }
+
+  async login({ email, password }) {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+  }
+
   async createProject(input) {
     return this.request('/projects', {
       method: 'POST',

@@ -31,7 +31,7 @@ Canopy is creative evolution infrastructure. It records every gesture—whether 
 canopy/
 ├── apps/
 │   ├── web/                     React + Vite + Tailwind + Zustand + TanStack Query + Fabric.js
-│   └── android/                 Architectural reservation for Kotlin + Compose client
+│   └── android/                 React Native + Expo JavaScript mobile client
 │
 ├── services/
 │   ├── api/                     Fastify modular monolith — the ONLY writer
@@ -116,14 +116,23 @@ This installs dependencies across all workspaces (`apps/*`, `services/*`, `packa
 Start PostgreSQL with `docker compose up -d postgres` (or use an existing PostgreSQL 16+ instance with pgvector), then run the forward-only SQL migrations in order:
 
 ```bash
-database/migrations/0000_init_pgvector.sql
-database/migrations/0001_core_platform.sql
-database/migrations/0002_atomic_version_creation.sql
-database/migrations/0003_creative_evolution.sql
-database/migrations/0004_copilot_retrieval.sql
+PGPASSWORD=canopy_dev_pass PGHOST=127.0.0.1 PGPORT=5433 PGDATABASE=canopy PGUSER=canopy pnpm db:migrate
 ```
 
-The migrations enable pgvector, create API-owned auth and core tables, ownership-safe query targets, lineage parent tables, immutability triggers, the transactional `create_core_version(...)` function, Phase 3 fork/diff/AI request foundations, and Phase 4 Copilot retrieval tables.
+The migrations enable pgvector, create API-owned auth and core tables, ownership-safe query targets, lineage parent tables, immutability triggers, the transactional `create_core_version(...)` function, Phase 3 fork/diff/AI request foundations, Phase 4 Copilot retrieval tables, and Phase 5 machine tokens.
+
+To load the deterministic demo project:
+
+```bash
+PGPASSWORD=canopy_dev_pass PGHOST=127.0.0.1 PGPORT=5433 PGDATABASE=canopy PGUSER=canopy pnpm db:seed
+```
+
+Demo login:
+
+```text
+email: demo@canopy.local
+password: canopy-demo-pass
+```
 
 Copy `.env.example` to `.env` and fill only the values required for your environment:
 

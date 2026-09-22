@@ -34,8 +34,21 @@ export async function buildServer(options = {}) {
   // Security & utility plugins
   await fastify.register(sensible);
   await fastify.register(cors, {
-    origin: config.corsOrigin,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (
+        config.env === 'development' ||
+        config.corsOrigin === '*' ||
+        config.corsOrigin === 'true' ||
+        origin === config.corsOrigin ||
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      ) {
+        return cb(null, true);
+      }
+      return cb(null, false);
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    credentials: true
   });
 
   // Multipart support for asset uploads

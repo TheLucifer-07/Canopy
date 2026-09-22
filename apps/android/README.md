@@ -1,18 +1,30 @@
-# Canopy Android Client (Architectural Reservation)
+# Canopy Android Client
 
 ## Architectural Position
 
-In accordance with Section 5.2 and Section 23 of the **Canopy Implementation Blueprint**, Canopy Android is a first-class mobile client designed to consume the identical REST API (`/v1`) as Canopy Web.
+Canopy Android is the React Native public-facing mobile client. It consumes the same REST contracts as Canopy Web and shares the Canopy brand language without duplicating backend logic.
 
-## Target Stack & Capabilities
+## Stack & Capabilities
 
-- **Language & UI**: Kotlin, Jetpack Compose, Material 3.
-- **Scope (P2)**: A 3-screen read-only client:
-  1. Project List / Workspace Overview
-  2. Lineage DAG Viewer
-  3. Version Inspector (with detailed Provenance, declared deltas, and Copilot citations)
-- **Future Capabilities**: Camera capture to version commit, lightweight adjustments, offline mutation queue.
+- **Language & UI**: JavaScript, React Native, Expo.
+- **Scope**: Phase 1 public foundation with Home, Features, How It Works, Use Cases, Developers, Docs, and Pricing views.
+- **Shared contract**: `@canopy/api-client` is the JavaScript API boundary.
 
-## Current Implementation Phase (Phase 1 Core)
+## Current Implementation Phase
 
-Android remains a later/P2 implementation. Phase 1 keeps this directory as the client boundary while the shared `/v1` API and Core lifecycle are implemented in the Fastify service.
+The previous Kotlin/Compose implementation was removed. Phase 1 deliberately does not implement authentication, workspace, lineage, or other later roadmap phases on Android.
+
+## Build
+
+```bash
+pnpm --filter @canopy/android build
+```
+
+This produces an Expo JavaScript export. To run the React Native app on an Android emulator or device:
+
+```bash
+pnpm --filter @canopy/android start
+pnpm --filter @canopy/android android
+```
+
+Set `EXPO_PUBLIC_API_URL` when the public app needs to resolve a non-default API host.
