@@ -15,8 +15,8 @@ export function createAuthActions(setState) {
         return;
       }
       try {
-        const session = await service.validateToken(token);
-        setState({ session, status: 'authenticated', error: '' });
+        const { session, user } = await service.validateToken(token);
+        setState({ session, user, status: 'authenticated', error: '' });
       } catch (error) {
         await service.clearToken();
         setState({ session: null, user: null, status: 'unauthenticated', error: service.messageFor(error, 'Your session expired. Please sign in again.') });

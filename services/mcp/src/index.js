@@ -82,6 +82,22 @@ export function createCanopyMcpServer({ apiUrl = DEFAULT_API_URL, token = DEFAUL
     inputSchema: { project_id: z.string().uuid(), type: z.string().optional() }
   }, async ({ project_id, type }) => api.listMemories(project_id, { type }));
 
+  registerReadTool(server, logger, token, 'canopy_list_versions', {
+    title: 'List Canopy project versions',
+    description: 'List ordered versions for an authorized project.',
+    inputSchema: { project_id: z.string().uuid() }
+  }, async ({ project_id }) => api.listProjectVersions(project_id));
+
+  registerReadTool(server, logger, token, 'canopy_get_asset', {
+    title: 'Get Canopy asset',
+    description: 'Get asset metadata and signed access URL for an authorized project asset.',
+    inputSchema: { asset_id: z.string().uuid() }
+  }, async ({ asset_id }) => {
+    const asset = await api.getAsset(asset_id);
+    const asset_url = await api.getAssetUrl(asset_id).catch(() => null);
+    return { asset, asset_url };
+  });
+
   return server;
 }
 

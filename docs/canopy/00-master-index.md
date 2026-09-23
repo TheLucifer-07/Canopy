@@ -29,3 +29,10 @@
 20. [20-phase-1-public.md](file:///Users/animireddyhemachandu/Desktop/Canopy/docs/canopy/20-phase-1-public.md) — Phase 1 Public UI & React Native Android Foundation
 21. [21-phase-2-auth.md](file:///Users/animireddyhemachandu/Desktop/Canopy/docs/canopy/21-phase-2-auth.md) — Phase 2 Web & React Native Authentication
 22. [22-phase-3-workspace.md](file:///Users/animireddyhemachandu/Desktop/Canopy/docs/canopy/22-phase-3-workspace.md) — Phase 3 Authenticated Workspace
+23. [23-phase-4-projects.md](file:///Users/animireddyhemachandu/Desktop/Canopy/docs/canopy/23-phase-4-projects.md) — Phase 4 Creative Projects Architecture
+24. [24-phase-6-assets.md](file:///Users/animireddyhemachandu/Desktop/Canopy/docs/canopy/24-phase-6-assets.md) — Phase 6 Asset Management
+25. [25-phase-7-diff-comparison.md](file:///Users/animireddyhemachandu/Desktop/Canopy/docs/canopy/25-phase-7-diff-comparison.md) — Phase 7 Semantic Diff & Comparison
+26. [28-phase-10-mcp-developers.md](file:///Users/animireddyhemachandu/Desktop/Canopy/docs/canopy/28-phase-10-mcp-developers.md) — Phase 10 MCP & Developer Infrastructure
+27. [29-phase-12-user-system.md](file:///Users/animireddyhemachandu/Desktop/Canopy/docs/canopy/29-phase-12-user-system.md) — Phase 12 User System (Notifications, Activity, Saved Items)
+28. [30-phase-13-settings.md](file:///Users/animireddyhemachandu/Desktop/Canopy/docs/canopy/30-phase-13-settings.md) — Phase 13 Settings (Account, Appearance, Preferences, Security, Tokens, AI, Services)
+29. [31-phase-14-security.md](file:///Users/animireddyhemachandu/Desktop/Canopy/docs/canopy/31-phase-14-security.md) — Phase 14 Security (Sessions, API Tokens, OAuth, Two-Factor Authentication)

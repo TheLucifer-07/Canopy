@@ -11,9 +11,12 @@ function verify(token) { const [body,mac]=String(token).split('.'); if(!body||!m
 export function generateApiToken() { return `cnp_pat_${randomBytes(32).toString('base64url')}`; }
 export function hashApiToken(token) { return createHash('sha256').update(String(token)).digest('hex'); }
 export async function authenticateRequest(request, requiredScope = null) {
-  const header=request.headers.authorization||'';
-  const token=header.startsWith('Bearer ')?header.slice(7).trim():'';
-  if (!token) throw new ApiError(ERROR_CODES.UNAUTHENTICATED,'Invalid or expired access token.',{statusCode:401});
+  const header = request.headers.authorization || '';
+  let token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  if (!token && request.query?.token) {
+    token = String(request.query.token).trim();
+  }
+  if (!token) throw new ApiError(ERROR_CODES.UNAUTHENTICATED, 'Invalid or expired access token.', { statusCode: 401 });
   if (token.startsWith('cnp_pat_')) return authenticateApiToken(request, token, requiredScope);
   const payload=verify(token);
   if(!payload)throw new ApiError(ERROR_CODES.UNAUTHENTICATED,'Invalid or expired access token.',{statusCode:401});

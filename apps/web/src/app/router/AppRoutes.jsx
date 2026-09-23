@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { LoadingState } from '@canopy/ui';
+import { NotFoundState, ForbiddenState, ServerErrorState, MaintenanceState } from '../../components/system/index.js';
 import { MarketingShell } from '../../components/marketing/MarketingShell.jsx';
 import {
   AndroidDownloadPage, ContactPage, DevelopersPage, DocumentationPage, FeaturesPage, HomePage,
@@ -39,7 +40,10 @@ export function AppRoutes() {
       <Route path="/pricing" element={<PricingPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/download/android" element={<AndroidDownloadPage />} />
-      <Route path="*" element={<NotFoundPage />} />
+      <Route path="/forbidden" element={<ForbiddenState title="Access Denied" description="You don't have permission to access this page." homeLabel="Return Home" onHome={() => window.location.href = '/'} />} />
+      <Route path="/maintenance" element={<MaintenanceState />} />
+      <Route path="/error" element={<ServerErrorState title="Server Error" description="Something went wrong on our end. Please try again later." onRetry={() => window.location.reload()} />} />
+      <Route path="*" element={<NotFoundState title="Page Not Found" description="This route has no history yet. Return to the public foundation or open the workspace." homeLabel="Back to Home" onHome={() => window.location.href = '/'} />} />
     </Route>
     <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
     <Route path="/signup" element={<GuestRoute><SignupPage /></GuestRoute>} />
@@ -48,6 +52,7 @@ export function AppRoutes() {
     <Route path="/app/*" element={<ProtectedRoute session={session}><WorkspaceRoute api={api} user={user} onSignOut={logout} /></ProtectedRoute>} />
   </Routes>;
 }
+
 
 function GuestRoute({ children }) {
   const session = useAuthStore((state) => state.session);
@@ -62,11 +67,14 @@ function ProtectedRoute({ session, children }) {
 function WorkspaceRoute({ api, user, onSignOut }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const projectMatch = location.pathname.match(/^\/app\/projects\/([^/]+)$/);
+  const projectMatch = location.pathname.match(/^\/app\/projects\/([^/]+)(?:\/([^/]+))?$/);
   const sectionMatch = location.pathname.match(/^\/app\/([^/]+)$/);
-  const view = projectMatch ? { name: 'project', projectId: projectMatch[1] } : sectionMatch ? { name: sectionMatch[1] } : { name: 'dashboard' };
+  const view = projectMatch
+    ? { name: projectMatch[2] === 'workbench' ? 'project-workbench' : 'project-home', projectId: projectMatch[1], tab: projectMatch[2] || 'home' }
+    : sectionMatch ? { name: sectionMatch[1] } : { name: 'dashboard' };
   const setView = (next) => {
-    if (next.name === 'project') navigate(`/app/projects/${next.projectId}`);
+    if (next.name === 'project-home') navigate(`/app/projects/${next.projectId}${next.tab && next.tab !== 'home' ? `/${next.tab}` : ''}`);
+    else if (next.name === 'project-workbench') navigate(`/app/projects/${next.projectId}/workbench`);
     else if (next.name === 'home') navigate('/');
     else if (next.name && next.name !== 'dashboard') navigate(`/app/${next.name}`);
     else navigate('/app');

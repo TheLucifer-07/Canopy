@@ -53,11 +53,13 @@ describe('Phase 5 MCP server', () => {
       const names = tools.tools.map((tool) => tool.name).sort();
       assert.deepEqual(names, [
         'canopy_compare_versions',
+        'canopy_get_asset',
         'canopy_get_lineage',
         'canopy_get_memory',
         'canopy_get_project',
         'canopy_get_version',
         'canopy_list_projects',
+        'canopy_list_versions',
         'canopy_search_history'
       ]);
       const result = await client.callTool({ name: 'canopy_get_project', arguments: { project_id: projectId } });

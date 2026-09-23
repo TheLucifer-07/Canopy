@@ -60,6 +60,11 @@ export const CreateProjectSchema = z.object({
   creative_goal: z.string().trim().max(LIMITS.MAX_CREATIVE_GOAL_LENGTH).optional().nullable()
 });
 
+export const UpdateProjectSchema = z.object({
+  name: z.string().trim().min(1).max(LIMITS.MAX_PROJECT_NAME_LENGTH).optional(),
+  creative_goal: z.string().trim().max(LIMITS.MAX_CREATIVE_GOAL_LENGTH).optional().nullable()
+}).refine((value) => Object.keys(value).length > 0, 'At least one project field is required.');
+
 export const ProjectParamsSchema = z.object({
   projectId: UuidSchema
 });
@@ -288,4 +293,64 @@ export const CopilotAnswerSchema = z.object({
   citations: z.array(CopilotCitationSchema),
   tools_used: z.array(z.string()),
   grounded: z.boolean()
+});
+
+export const UserProfileUpdateSchema = z.object({
+  display_name: z.string().trim().min(1).max(100).optional(),
+  username: z.string().trim().min(2).max(50).regex(/^[a-zA-Z0-9_-]+$/, 'Username may only contain letters, numbers, underscores, and hyphens').optional(),
+  bio: z.string().trim().max(1000).optional().nullable(),
+  location: z.string().trim().max(100).optional().nullable(),
+  website: z.string().trim().max(200).optional().nullable(),
+  avatar_url: z.string().trim().max(500).optional().nullable(),
+  preferences: z.record(z.any()).optional()
+});
+
+export const NOTIFICATION_TYPES = Object.freeze({
+  PROJECT_ACTIVITY: 'project_activity',
+  VERSION_ACTIVITY: 'version_activity',
+  ASSET_ACTIVITY: 'asset_activity',
+  MEMORY_ACTIVITY: 'memory_activity',
+  AI_ACTIVITY: 'ai_activity',
+  DEVELOPER_ACTIVITY: 'developer_activity'
+});
+
+export const NotificationParamsSchema = z.object({
+  notificationId: UuidSchema
+});
+
+export const SAVED_ENTITY_TYPES = Object.freeze({
+  PROJECT: 'project',
+  VERSION: 'version',
+  ASSET: 'asset',
+  MEMORY: 'memory',
+  DIFF: 'diff'
+});
+
+export const SavedItemCreateSchema = z.object({
+  entity_type: z.enum(['project', 'version', 'asset', 'memory', 'diff']),
+  entity_id: UuidSchema,
+  metadata: z.record(z.any()).optional().default({})
+});
+
+export const SavedItemParamsSchema = z.object({
+  savedItemId: UuidSchema
+});
+
+export const UserSettingsUpdateSchema = z.object({
+  appearance: z.object({
+    theme: z.enum(['dark', 'system']).optional(),
+    density: z.enum(['comfortable', 'compact']).optional(),
+    reduced_motion: z.boolean().optional()
+  }).optional(),
+  preferences: z.object({
+    default_landing: z.enum(['dashboard', 'projects', 'activity', 'saved-items']).optional(),
+    default_asset_view: z.enum(['side-by-side', 'split-slider', 'difference-highlight']).optional(),
+    notifications_enabled: z.boolean().optional(),
+    activity_stream_density: z.enum(['standard', 'compact']).optional()
+  }).optional(),
+  ai: z.object({
+    diff_detail_level: z.enum(['compact', 'standard', 'deep']).optional(),
+    copilot_groundedness: z.enum(['strict', 'balanced']).optional(),
+    enable_ai_suggestions: z.boolean().optional()
+  }).optional()
 });

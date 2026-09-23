@@ -16,7 +16,7 @@ function now() {
 }
 
 function createFakeCoreRepository() {
-  const project = {
+  let project = {
     id: PROJECT_ID,
     owner_id: USER_ID,
     name: 'Launch exploration',
@@ -47,7 +47,24 @@ function createFakeCoreRepository() {
       return { ...project, owner_id: ownerId, name, creative_goal: creativeGoal };
     },
     async listProjects() {
-      return [project];
+      return project.archived_at ? [] : [project];
+    },
+    async updateProject({ projectId, ownerId, name, creativeGoal }) {
+      assert.equal(projectId, PROJECT_ID);
+      assert.equal(ownerId, USER_ID);
+      project = {
+        ...project,
+        name: name ?? project.name,
+        creative_goal: creativeGoal === undefined ? project.creative_goal : creativeGoal,
+        updated_at: now()
+      };
+      return project;
+    },
+    async archiveProject({ projectId, ownerId }) {
+      assert.equal(projectId, PROJECT_ID);
+      assert.equal(ownerId, USER_ID);
+      project = { ...project, archived_at: now(), updated_at: now() };
+      return project;
     },
     async forkProject({ ownerId, sourceVersionId, name, creativeGoal }) {
       const source = versions.find((version) => version.id === sourceVersionId);
@@ -93,6 +110,16 @@ function createFakeCoreRepository() {
     },
     async getGrantedAsset() {
       return asset;
+    },
+    async getProjectAssets({ projectId, ownerId }) {
+      assert.equal(projectId, PROJECT_ID);
+      assert.equal(ownerId, USER_ID);
+      return [{ ...asset, related_versions: versions.map((v) => ({ id: v.id, sequence: v.sequence })) }];
+    },
+    async getAssetDetail({ assetId, ownerId }) {
+      assert.equal(assetId, ASSET_ID);
+      assert.equal(ownerId, USER_ID);
+      return { ...asset, related_versions: versions.map((v) => ({ id: v.id, sequence: v.sequence })) };
     },
     async getVersion({ versionId }) {
       return versions.find((version) => version.id === versionId) || null;
@@ -148,8 +175,12 @@ function createFakeCoreRepository() {
       memories.push(row);
       return row;
     },
-    async listMemories() {
-      return memories;
+    async listMemories({ status } = {}) {
+      const s = status || 'active';
+      return memories.filter((m) => m.status === s);
+    },
+    async searchCopilotMemories({ projectId, ownerId, query = '', types = null, limit = 8 }) {
+      return memories.filter((m) => m.status === 'active').slice(0, limit);
     },
     async getMemory({ memoryId }) {
       return memories.find((memory) => memory.id === memoryId) || null;
@@ -245,6 +276,43 @@ describe('Phase 1 core API routes', () => {
       });
       assert.equal(response.statusCode, 201);
       assert.equal(response.json().owner_id, USER_ID);
+    });
+  });
+
+  it('updates and archives projects through owner-scoped routes', async () => {
+    await withServer(async (server) => {
+      const updated = await server.inject({
+        method: 'PATCH',
+        url: `/v1/projects/${PROJECT_ID}`,
+        headers: { authorization: 'Bearer test' },
+        payload: { name: 'Client-ready direction', creative_goal: 'Prepare a launch review set.' }
+      });
+
+      assert.equal(updated.statusCode, 200);
+      assert.equal(updated.json().name, 'Client-ready direction');
+      assert.equal(updated.json().creative_goal, 'Prepare a launch review set.');
+
+      const invalid = await server.inject({
+        method: 'PATCH',
+        url: `/v1/projects/${PROJECT_ID}`,
+        headers: { authorization: 'Bearer test' },
+        payload: {}
+      });
+      assert.equal(invalid.statusCode, 422);
+
+      const archived = await server.inject({
+        method: 'DELETE',
+        url: `/v1/projects/${PROJECT_ID}`,
+        headers: { authorization: 'Bearer test' }
+      });
+      assert.equal(archived.statusCode, 204);
+
+      const list = await server.inject({
+        method: 'GET',
+        url: '/v1/projects',
+        headers: { authorization: 'Bearer test' }
+      });
+      assert.deepEqual(list.json().data, []);
     });
   });
 
@@ -491,6 +559,138 @@ describe('Phase 1 core API routes', () => {
       assert.equal(diff.statusCode, 201);
       assert.equal(diff.json().status, 'declared_only');
       assert.deepEqual(diff.json().evidence_used, ['declared', 'path']);
+    });
+  });
+
+  it('lists project assets and gets asset detail with owner-scoped routes', async () => {
+    await withServer(async (server) => {
+      const listRes = await server.inject({
+        method: 'GET',
+        url: `/v1/projects/${PROJECT_ID}/assets`,
+        headers: { authorization: 'Bearer test' }
+      });
+      assert.equal(listRes.statusCode, 200);
+      assert.equal(listRes.json().project_id, PROJECT_ID);
+      assert.equal(listRes.json().assets.length, 1);
+      assert.equal(listRes.json().assets[0].id, ASSET_ID);
+
+      const detailRes = await server.inject({
+        method: 'GET',
+        url: `/v1/assets/${ASSET_ID}`,
+        headers: { authorization: 'Bearer test' }
+      });
+      assert.equal(detailRes.statusCode, 200);
+      assert.equal(detailRes.json().id, ASSET_ID);
+      assert.equal(detailRes.json().media_type, 'image');
+    });
+  });
+
+  it('memory authority invariant: proposed memories excluded from active list and copilot until confirmed', async () => {
+    await withServer(async (server) => {
+      // Step 1: Create a proposed memory via the propose endpoint
+      const proposeRes = await server.inject({
+        method: 'POST',
+        url: `/v1/projects/${PROJECT_ID}/memories/propose`,
+        headers: { authorization: 'Bearer test' },
+        payload: {
+          type: 'preference',
+          statement: 'Client prefers warm tones over cool blues.',
+          rationale: 'Feedback from brand review meeting.'
+        }
+      });
+      assert.equal(proposeRes.statusCode, 201);
+      assert.equal(proposeRes.json().status, 'proposed');
+      assert.equal(proposeRes.json().origin, 'ai_extracted');
+      const memoryId = proposeRes.json().id;
+
+      // Step 2: Verify proposed memory does NOT appear in active list
+      const activeListRes = await server.inject({
+        method: 'GET',
+        url: `/v1/projects/${PROJECT_ID}/memories`,
+        headers: { authorization: 'Bearer test' }
+      });
+      assert.equal(activeListRes.statusCode, 200);
+      const activeData = activeListRes.json();
+      const activeMemories = activeData.data?.memories || activeData.data || activeData || [];
+      const found = (Array.isArray(activeMemories) ? activeMemories : []).find((m) => m.id === memoryId);
+      assert.equal(found, undefined, 'Proposed memory must NOT appear in active memory list');
+
+      // Step 3: Confirm the proposed memory
+      const confirmRes = await server.inject({
+        method: 'POST',
+        url: `/v1/memories/${memoryId}/confirm`,
+        headers: { authorization: 'Bearer test' }
+      });
+      assert.equal(confirmRes.statusCode, 200);
+      assert.equal(confirmRes.json().status, 'active');
+
+      // Step 4: Verify confirmed memory NOW appears in active list
+      const activeListRes2 = await server.inject({
+        method: 'GET',
+        url: `/v1/projects/${PROJECT_ID}/memories`,
+        headers: { authorization: 'Bearer test' }
+      });
+      assert.equal(activeListRes2.statusCode, 200);
+      const activeData2 = activeListRes2.json();
+      const activeMemories2 = activeData2.data?.memories || activeData2.data || activeData2 || [];
+      const found2 = (Array.isArray(activeMemories2) ? activeMemories2 : []).find((m) => m.id === memoryId);
+      assert.ok(found2, 'Confirmed memory must appear in active list');
+      assert.equal(found2.status, 'active');
+    });
+  });
+
+  it('creates user-authored memory and retrieves it by id', async () => {
+    await withServer(async (server) => {
+      const createRes = await server.inject({
+        method: 'POST',
+        url: `/v1/projects/${PROJECT_ID}/memories`,
+        headers: { authorization: 'Bearer test' },
+        payload: {
+          type: 'constraint',
+          statement: 'No blue-dominant backgrounds.',
+          rationale: 'Client directive from kick-off call.'
+        }
+      });
+      assert.equal(createRes.statusCode, 201);
+      assert.equal(createRes.json().origin, 'user_authored');
+      assert.equal(createRes.json().status, 'active');
+
+      const getRes = await server.inject({
+        method: 'GET',
+        url: `/v1/memories/${createRes.json().id}`,
+        headers: { authorization: 'Bearer test' }
+      });
+      assert.equal(getRes.statusCode, 200);
+      assert.equal(getRes.json().statement, 'No blue-dominant backgrounds.');
+    });
+  });
+
+  it('edits memory as successor and archives old memory', async () => {
+    await withServer(async (server) => {
+      const createRes = await server.inject({
+        method: 'POST',
+        url: `/v1/projects/${PROJECT_ID}/memories`,
+        headers: { authorization: 'Bearer test' },
+        payload: {
+          type: 'decision',
+          statement: 'Use serif fonts for headlines.'
+        }
+      });
+      assert.equal(createRes.statusCode, 201);
+      const originalId = createRes.json().id;
+
+      const editRes = await server.inject({
+        method: 'PATCH',
+        url: `/v1/memories/${originalId}`,
+        headers: { authorization: 'Bearer test' },
+        payload: {
+          statement: 'Use sans-serif fonts for headlines.',
+          rationale: 'Changed client preference after review.'
+        }
+      });
+      assert.equal(editRes.statusCode, 200);
+      assert.equal(editRes.json().status, 'active');
+      assert.equal(editRes.json().statement, 'Use sans-serif fonts for headlines.');
     });
   });
 });

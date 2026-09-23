@@ -47,7 +47,7 @@ function MarketingHeader({ session, onSignOut }) {
       </nav>
       <div className="hidden items-center gap-2 lg:flex">
         <Link to="/docs" className="inline-flex h-9 items-center gap-2 px-2 text-sm text-canopy-secondary transition hover:text-white"><Icons.Search className={iconSize.ui} /> Search docs</Link>
-        {session ? <><Link to="/app" className="rounded-md bg-canopy-green px-3 py-2 text-sm font-semibold text-[#06251A] hover:bg-[#54e7ad]">Open workspace</Link><IconButton label="Sign out" onClick={onSignOut}><Icons.X className={iconSize.ui} /></IconButton></> : <><Link to="/login" className="px-3 py-2 text-sm text-canopy-secondary hover:text-white">Sign in</Link><Link to="/signup" className="rounded-md bg-canopy-green px-3 py-2 text-sm font-semibold text-[#06251A] hover:bg-[#54e7ad]">Get started</Link></>}
+        {session ? <><Link to="/app" className="rounded-md bg-canopy-green px-3 py-2 text-sm font-semibold text-[#06251A] hover:bg-[#4ee0a0]">Open workspace</Link><IconButton label="Sign out" onClick={onSignOut}><Icons.X className={iconSize.ui} /></IconButton></> : <><Link to="/login" className="px-3 py-2 text-sm text-canopy-secondary hover:text-white">Sign in</Link><Link to="/signup" className="rounded-md bg-canopy-green px-3 py-2 text-sm font-semibold text-[#06251A] hover:bg-[#4ee0a0]">Get started</Link></>}
       </div>
       <button className="inline-flex h-10 w-10 items-center justify-center rounded-md text-canopy-secondary hover:bg-canopy-surface hover:text-white lg:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen(!mobileOpen)}>{mobileOpen ? <Icons.X className={iconSize.feature} /> : <Icons.Menu className={iconSize.feature} />}</button>
     </div>

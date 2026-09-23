@@ -37,8 +37,10 @@ tools.
 
 - `canopy_list_projects`: requires `projects:read`
 - `canopy_get_project`: requires `projects:read`
-- `canopy_get_lineage`: requires `versions:read`
+- `canopy_list_versions`: requires `versions:read`
 - `canopy_get_version`: requires `versions:read`
+- `canopy_get_lineage`: requires `versions:read`
+- `canopy_get_asset`: requires `assets:read` / `versions:read`
 - `canopy_compare_versions`: requires `versions:read`
 - `canopy_search_history`: requires `versions:read`
 - `canopy_get_memory`: requires `memory:read`

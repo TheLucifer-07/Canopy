@@ -44,6 +44,19 @@ export class CoreOperations {
     return this.repository.assertProjectOwner({ projectId, ownerId: auth.userId });
   }
 
+  async updateProject(auth, projectId, input) {
+    return this.repository.updateProject({
+      projectId,
+      ownerId: auth.userId,
+      name: input.name,
+      creativeGoal: input.creative_goal
+    });
+  }
+
+  async archiveProject(auth, projectId) {
+    return this.repository.archiveProject({ projectId, ownerId: auth.userId });
+  }
+
   async forkProject(auth, input) {
     return this.repository.forkProject({
       ownerId: auth.userId,
@@ -242,9 +255,25 @@ export class CoreOperations {
     return this.repository.updateMemoryStatus({ memoryId, ownerId: auth.userId, status: MEMORY_STATUS.ARCHIVED });
   }
 
+  async getMemory(auth, memoryId) {
+    const memory = await this.repository.getMemory({ memoryId, ownerId: auth.userId });
+    if (!memory) {
+      throw new ApiError('MEMORY_NOT_FOUND', 'Memory not found.', { statusCode: 404 });
+    }
+    return memory;
+  }
+
   async editMemory(auth, memoryId, input) {
     const memory = validateMemoryEditInput(input);
     return this.repository.editMemory({ memoryId, ownerId: auth.userId, memory });
+  }
+
+  async getProjectAssets(auth, projectId) {
+    return this.repository.getProjectAssets({ projectId, ownerId: auth.userId });
+  }
+
+  async getAssetDetail(auth, assetId) {
+    return this.repository.getAssetDetail({ assetId, ownerId: auth.userId });
   }
 
   async getAssetUrl(auth, assetId) {
@@ -260,6 +289,9 @@ export class CoreOperations {
   }
 
   async createSemanticDiff(auth, input) {
+    if (input.from_version_id === input.to_version_id) {
+      throw new ApiError('SAME_VERSION_COMPARISON', 'Cannot compare a version with itself. Please select two distinct versions.', { statusCode: 422 });
+    }
     const from = await this.repository.getVersion({ versionId: input.from_version_id, ownerId: auth.userId });
     const to = await this.repository.getVersion({ versionId: input.to_version_id, ownerId: auth.userId });
     if (!from || !to || from.project_id !== to.project_id) {

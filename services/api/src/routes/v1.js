@@ -16,7 +16,13 @@ import {
   MergeVersionsSchema,
   PaginationQuerySchema,
   ProjectParamsSchema,
+  NotificationParamsSchema,
+  SavedItemCreateSchema,
+  SavedItemParamsSchema,
+  UpdateProjectSchema,
   UpdateMemorySchema,
+  UserProfileUpdateSchema,
+  UserSettingsUpdateSchema,
   VersionParamsSchema
 } from '@canopy/schemas';
 import { CoreOperations } from '../operations/core.js';
@@ -107,6 +113,113 @@ export async function v1Routes(fastify) {
     return row;
   });
 
+  // ── Phase 11: Profile & Activity ─────────────────────────────────────────────
+  fastify.get('/me/profile', async (request) => {
+    const authContext = await auth(request, fastify);
+    const profile = await fastify.repositories.core.getUserProfile({ userId: authContext.userId });
+    if (!profile) throw new ApiError('USER_NOT_FOUND', 'Profile not found.', { statusCode: 404 });
+    return profile;
+  });
+
+  fastify.patch('/me/profile', async (request) => {
+    const authContext = await auth(request, fastify);
+    const body = parseWithSchema(UserProfileUpdateSchema, request.body);
+    return fastify.repositories.core.updateUserProfile({ userId: authContext.userId, input: body });
+  });
+
+  fastify.get('/me/activity', async (request) => {
+    const authContext = await auth(request, fastify);
+    const limit = parseInt(request.query?.limit, 10) || 20;
+    const activity = await fastify.repositories.core.getUserActivity({ userId: authContext.userId, limit });
+    return { data: activity };
+  });
+
+  // ── Phase 12: Notifications ──────────────────────────────────────────────────
+  fastify.get('/me/notifications', async (request) => {
+    const authContext = await auth(request, fastify);
+    const limit = parseInt(request.query?.limit, 10) || 50;
+    const unreadOnly = request.query?.unread === 'true';
+    const notifications = await fastify.repositories.core.listNotifications({
+      userId: authContext.userId,
+      limit,
+      unreadOnly
+    });
+    return { data: notifications };
+  });
+
+  fastify.get('/me/notifications/unread-count', async (request) => {
+    const authContext = await auth(request, fastify);
+    const count = await fastify.repositories.core.getUnreadNotificationCount({ userId: authContext.userId });
+    return { unread_count: count };
+  });
+
+  fastify.patch('/me/notifications/:notificationId/read', async (request) => {
+    const authContext = await auth(request, fastify);
+    const params = parseWithSchema(NotificationParamsSchema, request.params);
+    return fastify.repositories.core.markNotificationRead({
+      userId: authContext.userId,
+      notificationId: params.notificationId
+    });
+  });
+
+  fastify.post('/me/notifications/mark-all-read', async (request) => {
+    const authContext = await auth(request, fastify);
+    return fastify.repositories.core.markAllNotificationsRead({ userId: authContext.userId });
+  });
+
+  // ── Phase 12: Saved Items ────────────────────────────────────────────────────
+  fastify.get('/me/saved-items', async (request) => {
+    const authContext = await auth(request, fastify);
+    const limit = parseInt(request.query?.limit, 10) || 50;
+    const entityType = request.query?.entity_type || null;
+    const items = await fastify.repositories.core.listSavedItems({
+      userId: authContext.userId,
+      limit,
+      entityType
+    });
+    return { data: items };
+  });
+
+  fastify.post('/me/saved-items', async (request, reply) => {
+    const authContext = await auth(request, fastify);
+    const body = parseWithSchema(SavedItemCreateSchema, request.body);
+    const item = await fastify.repositories.core.saveItem({
+      userId: authContext.userId,
+      entityType: body.entity_type,
+      entityId: body.entity_id,
+      metadata: body.metadata
+    });
+    return reply.status(201).send(item);
+  });
+
+  fastify.delete('/me/saved-items/:savedItemId', async (request) => {
+    const authContext = await auth(request, fastify);
+    const params = parseWithSchema(SavedItemParamsSchema, request.params);
+    return fastify.repositories.core.unsaveItem({
+      userId: authContext.userId,
+      savedItemId: params.savedItemId
+    });
+  });
+
+  // ── Phase 13: Settings ───────────────────────────────────────────────────────
+  fastify.get('/me/settings', async (request) => {
+    const authContext = await auth(request, fastify);
+    return fastify.repositories.core.getUserSettings({ userId: authContext.userId });
+  });
+
+  fastify.patch('/me/settings', async (request) => {
+    const authContext = await auth(request, fastify);
+    const body = parseWithSchema(UserSettingsUpdateSchema, request.body);
+    return fastify.repositories.core.updateUserSettings({ userId: authContext.userId, input: body });
+  });
+
+  // ── Phase 14: Security ───────────────────────────────────────────────────────
+  fastify.get('/me/security', async (request) => {
+    const authContext = await auth(request, fastify);
+    const status = await fastify.repositories.core.getUserSecurityStatus({ userId: authContext.userId });
+    return { data: status };
+  });
+
   fastify.post('/projects', async (request, reply) => {
     const authContext = await auth(request, fastify, 'versions:write');
     const body = parseWithSchema(CreateProjectSchema, request.body);
@@ -126,6 +239,20 @@ export async function v1Routes(fastify) {
     const authContext = await auth(request, fastify, 'projects:read');
     const params = parseWithSchema(ProjectParamsSchema, request.params);
     return core.getProject(authContext, params.projectId);
+  });
+
+  fastify.patch('/projects/:projectId', async (request) => {
+    const authContext = await auth(request, fastify, 'versions:write');
+    const params = parseWithSchema(ProjectParamsSchema, request.params);
+    const body = parseWithSchema(UpdateProjectSchema, request.body);
+    return core.updateProject(authContext, params.projectId, body);
+  });
+
+  fastify.delete('/projects/:projectId', async (request, reply) => {
+    const authContext = await auth(request, fastify, 'versions:write');
+    const params = parseWithSchema(ProjectParamsSchema, request.params);
+    await core.archiveProject(authContext, params.projectId);
+    return reply.status(204).send();
   });
 
   fastify.post('/projects/:projectId/fork', async (request, reply) => {
@@ -156,6 +283,19 @@ export async function v1Routes(fastify) {
       mime: part.mimetype
     });
     return reply.status(201).send(asset);
+  });
+
+  fastify.get('/projects/:projectId/assets', async (request) => {
+    const authContext = await auth(request, fastify, 'versions:read');
+    const params = parseWithSchema(ProjectParamsSchema, request.params);
+    const assets = await core.getProjectAssets(authContext, params.projectId);
+    return { project_id: params.projectId, assets };
+  });
+
+  fastify.get('/assets/:assetId', async (request) => {
+    const authContext = await auth(request, fastify, 'versions:read');
+    const params = parseWithSchema(AssetParamsSchema, request.params);
+    return core.getAssetDetail(authContext, params.assetId);
   });
 
   fastify.get('/assets/:assetId/url', async (request) => {
@@ -216,6 +356,13 @@ export async function v1Routes(fastify) {
     return core.continueFrom(authContext, params.versionId);
   });
 
+  // New: List versions for a project
+  fastify.get('/projects/:projectId/versions', async (request) => {
+    const authContext = await auth(request, fastify, 'versions:read');
+    const params = parseWithSchema(ProjectParamsSchema, request.params);
+    return fastify.repositories.core.getProjectVersions({ projectId: params.projectId, ownerId: authContext.userId });
+  });
+
   fastify.get('/projects/:projectId/lineage', async (request) => {
     const authContext = await auth(request, fastify, 'versions:read');
     const params = parseWithSchema(ProjectParamsSchema, request.params);
@@ -259,6 +406,12 @@ export async function v1Routes(fastify) {
     return { data: { versions, memories } };
   });
 
+  fastify.get('/memories/:memoryId', async (request) => {
+    const authContext = await auth(request, fastify, 'memory:read');
+    const params = parseWithSchema(MemoryParamsSchema, request.params);
+    return core.getMemory(authContext, params.memoryId);
+  });
+
   fastify.patch('/memories/:memoryId', async (request, reply) => {
     const authContext = await auth(request, fastify, 'memory:write');
     const params = parseWithSchema(MemoryParamsSchema, request.params);
@@ -299,13 +452,15 @@ export async function v1Routes(fastify) {
     if (!conversation) throw new ApiError('COPILOT_CONVERSATION_NOT_FOUND', 'Conversation not found.', { statusCode: 404 });
     const conversationId = conversation.id;
     await repository.addCopilotMessage({ conversationId, ownerId: authContext.userId, role: 'user', content: body.question });
-    reply.hijack();
+    const origin = request.headers.origin || config.corsOrigin;
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
       'X-Accel-Buffering': 'no',
-      'Access-Control-Allow-Origin': config.corsOrigin,
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Headers': 'Authorization, Content-Type, Accept, Idempotency-Key',
       Vary: 'Origin'
     });
     const abortController = new AbortController();

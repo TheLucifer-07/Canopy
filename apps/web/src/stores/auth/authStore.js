@@ -16,8 +16,8 @@ export const useAuthStore = create((set, get) => ({
     }
     set({ status: 'initializing', error: '' });
     try {
-      const session = await service.validateToken(token);
-      set({ session, status: 'authenticated', error: '' });
+      const { session, user } = await service.validateToken(token);
+      set({ session, user, status: 'authenticated', error: '' });
     } catch (error) {
       service.clearToken();
       set({ session: null, user: null, status: 'unauthenticated', error: service.messageFor(error, 'Your session expired. Please sign in again.') });

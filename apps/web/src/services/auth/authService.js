@@ -30,11 +30,21 @@ export function createAuthService({ storage = window.localStorage } = {}) {
     async validateToken(token) {
       const authed = new CanopyApiClient({ baseUrl: API_URL, token });
       await authed.listTokens();
-      return { access_token: token };
+      return { session: { access_token: token }, user: userFromToken(token) };
     },
     messageFor(error, fallback = 'Authentication failed.') {
       if (error?.status === 429) return 'Too many attempts. Please wait and try again.';
       return formatError(error, fallback);
     }
   };
+}
+
+function userFromToken(token) {
+  try {
+    const [body] = String(token).split('.');
+    const payload = JSON.parse(atob(body.replace(/-/g, '+').replace(/_/g, '/')));
+    return { id: payload.sub, email: payload.email };
+  } catch {
+    return null;
+  }
 }

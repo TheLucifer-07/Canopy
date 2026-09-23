@@ -283,23 +283,23 @@ function heuristicPlan(question) {
     args.get_path = { from_ref: sequenceRefs[0], to_ref: sequenceRefs[1] };
     args.get_diff = { from_ref: sequenceRefs[0], to_ref: sequenceRefs[1] };
     tools = ['get_path', 'get_diff'];
-  } else if (sequenceRefs[0] && /memory|decision|preference|reject|constraint|goal|typography|mascot/.test(lower)) {
+  } else if (sequenceRefs[0] && /memory|decision|preference|reject|constraint|goal|typography|mascot|direction|insight|remember/.test(lower)) {
     args.get_version = { version_ref: sequenceRefs[0] };
     args.search_memory = { query: question, limit: 8 };
     tools = ['get_version', 'search_memory'];
-  } else if (/parent|before|based on|came from/.test(lower) && sequenceRefs[0]) {
+  } else if (sequenceRefs[0]) {
     args.get_version = { version_ref: sequenceRefs[0] };
     tools = ['get_version'];
   } else if (/derived|descendant|subtree|branch/.test(lower) && sequenceRefs[0]) {
     args.get_subtree = { version_ref: sequenceRefs[0] };
     tools = ['get_subtree'];
-  } else if (/memory|decision|preference|reject|constraint|goal|typography/.test(lower)) {
+  } else if (/memory|decision|preference|reject|constraint|goal|typography|remember|direction|learn|insight/.test(lower)) {
     args.search_memory = { query: question, limit: 8 };
     tools = ['search_memory'];
   } else if (/ai|generated|model|prompt/.test(lower)) {
     args.list_ai_generations = { limit: 10 };
     tools = ['list_ai_generations'];
-  } else if (/latest|evolution|overview|history/.test(lower)) {
+  } else if (/latest|evolution|overview|history|before|changed|why|how|path/.test(lower)) {
     tools = ['get_lineage_overview', 'search_versions'];
     args.search_versions = { query: question, limit: 8 };
   } else {

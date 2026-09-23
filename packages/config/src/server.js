@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 // Workspace commands can execute a package with that package as the current
 // directory. Resolve the repository-root env file from this server-only module
@@ -89,7 +90,9 @@ export const serverConfig = Object.freeze({
     tokenTtlSeconds: parseInt(process.env.AUTH_TOKEN_TTL_SECONDS || '604800', 10)
   },
   storage: {
-    root: process.env.STORAGE_PATH || './storage/data',
+    root: process.env.STORAGE_PATH
+      ? resolve(fileURLToPath(new URL('../../../', import.meta.url)), process.env.STORAGE_PATH)
+      : resolve(fileURLToPath(new URL('../../../', import.meta.url)), 'storage/data'),
     publicBaseUrl: process.env.API_BASE_URL || 'http://localhost:3000/v1'
   },
 

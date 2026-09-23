@@ -1,6 +1,6 @@
 # 22 - Phase 3 Workspace
 
-Phase 3 turns the authenticated `/app` area into the Canopy Workspace: the user's operational home for creative projects, recent versions, and real creative activity.
+Phase 3 turns the authenticated `/app` area into the Canopy Creative Workspace: the user's operational home for creative projects, recent versions, real creative activity, and the first user identity surface.
 
 ## Purpose
 
@@ -10,6 +10,7 @@ The Workspace answers:
 - What changed recently?
 - What should I open next?
 - Which projects and versions exist for this authenticated user?
+- Who am I inside Canopy?
 - What real actions can I perform now?
 
 It adapts mature authenticated-product patterns from GitHub, but maps them to Canopy concepts: Creative Projects, Creative Versions, Creative Lineage, Creative Memory, Semantic Diff, and Canopy Copilot.
@@ -25,6 +26,7 @@ Current structure:
 - `apps/web/src/features/workspace/components/WorkspaceHome.jsx` owns the workspace home sections.
 - `apps/web/src/features/workspace/hooks/useWorkspaceOverview.js` loads real API data.
 - `apps/web/src/features/workspace/services/workspaceData.js` derives project summaries, recent versions, and activity from real API responses.
+- `apps/web/src/services/auth/authService.js` restores the session and derives basic user identity from the JWT payload after server-side token validation.
 
 The existing project editor/detail workflow remains in `apps/web/src/workspace/Workspace.jsx` and is still reachable at `/app/projects/:id`.
 
@@ -32,20 +34,35 @@ The existing project editor/detail workflow remains in `apps/web/src/workspace/W
 
 Authenticated navigation exposes:
 
-- Workspace
+- Creative Workspace
 - Projects
-- Versions
-- Memory
-- Copilot
-- Developers
-- Documentation
-- Settings
 - Profile menu
 - Logout
 
-Only Workspace and Projects route to the current real workspace home. Versions, Memory, Copilot, Developers, Documentation, and Settings show honest product placeholders or point to existing context instead of pretending future routes are complete.
+Creative Workspace and Projects route to the current real workspace home. Versions, Memory, Copilot, and Developers are visible as disabled future-phase product areas; they do not navigate to fake pages.
 
 The old authenticated "Marketing Site" button was removed.
+
+## Profile Foundation
+
+Phase 3 establishes a user identity foundation without implementing the full future user system.
+
+The profile menu exposes:
+
+- Profile
+- Projects
+- Log out
+
+The `/app/profile` surface uses authenticated user identity plus real project/activity data:
+
+- Email from the validated JWT payload.
+- Handle derived from email until a future username field exists.
+- Creative project count from `GET /v1/projects`.
+- Recent version and activity context derived from lineage.
+- Featured Creative Projects from real project data.
+- Creative Activity from real version history.
+
+Profile editing, bio, location, website, and public profile fields are intentionally deferred.
 
 ## Data Sources
 
@@ -72,7 +89,9 @@ The Web Workspace supports:
 - Real create-project flow
 - Recent projects
 - Recent versions
-- Activity
+- Creative Activity
+- Profile summary
+- Profile page foundation
 - Logout via the existing auth store
 
 ## Android Architecture
@@ -96,7 +115,8 @@ Android supports:
 - Error state with retry
 - Recent projects
 - Recent versions
-- Activity
+- Creative Activity
+- Profile summary using authenticated user identity
 - Real create-project action
 - Logout
 
@@ -114,9 +134,18 @@ The Workspace uses the established Canopy visual language:
 - Muted secondary text
 - Canopy green actions
 - Thin borders
+- Editorial spacing inherited from Phase 1
+- Disabled future navigation instead of fake pages
 - Compact operational typography
 
 Authenticated navigation is intentionally more tool-like than the public marketing navbar. No glass-heavy overlays or transparent menus are used in the workspace shell.
+
+## Known Limitations
+
+- There is no dedicated backend profile endpoint yet.
+- Notification infrastructure does not exist, so the workspace does not display notification controls or fake counts.
+- Versions, Memory, Copilot, and Developers are not implemented as standalone authenticated sections in Phase 3; project-scoped functionality remains in the existing project workflow.
+- Android supports the mobile Creative Workspace and logout but does not implement a separate profile route in Phase 3.
 
 ## Verification
 

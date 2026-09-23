@@ -13,18 +13,18 @@ export function cn(...inputs) {
 
 export function CanopySymbol({ className = 'h-6 w-6', ...props }) {
   return (
-    <svg className={cn('text-emerald-400', className)} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
-      <rect x="4" y="4" width="24" height="24" rx="7" className="fill-emerald-500/12 stroke-emerald-400" strokeWidth="2" />
-      <path d="M16 23V10" className="stroke-emerald-200" strokeWidth="2.4" strokeLinecap="round" />
-      <path d="M16 14.5C13.1 14.2 10.8 12.5 9.7 9.7C12.7 9.3 15.3 10.5 16.8 13.2" className="stroke-emerald-400" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M16 18.8C19.6 18.5 22.3 16.4 23.2 12.8C19.7 12.5 16.9 14.2 15.6 17.4" className="stroke-emerald-400" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg className={cn('text-canopy-green', className)} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" {...props}>
+      <rect x="4" y="4" width="24" height="24" rx="6" className="fill-canopy-green/10 stroke-canopy-green" strokeWidth="2" />
+      <path d="M16 23V10" className="stroke-white" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M16 14.5C13.1 14.2 10.8 12.5 9.7 9.7C12.7 9.3 15.3 10.5 16.8 13.2" className="stroke-canopy-green" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 18.8C19.6 18.5 22.3 16.4 23.2 12.8C19.7 12.5 16.9 14.2 15.6 17.4" className="stroke-canopy-green" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
 export function CanopyWordmark({ className = 'text-lg font-bold tracking-tight', ...props }) {
   return (
-    <span className={cn('font-sans font-extrabold tracking-tight text-text', className)} {...props}>
+    <span className={cn('font-sans font-bold tracking-tight text-white', className)} {...props}>
       CANOPY
     </span>
   );
@@ -41,7 +41,7 @@ export function CanopyLogo({ className = '', symbolClass = 'h-6 w-6', wordmarkCl
 
 export function CanopyAppIcon({ className = 'h-12 w-12', ...props }) {
   return (
-    <div className={cn('flex items-center justify-center rounded-lg border border-border bg-surface p-2.5 shadow-md', className)} {...props}>
+    <div className={cn('flex items-center justify-center rounded-md border border-canopy-border bg-canopy-surface p-2.5 shadow-md', className)} {...props}>
       <CanopySymbol className="h-full w-full" />
     </div>
   );
@@ -56,21 +56,24 @@ export function Button({
   children,
   ...props
 }) {
-  const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50 select-none';
+  const baseStyles = 'inline-flex min-w-0 items-center justify-center rounded-md font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy-green/45 focus-visible:ring-offset-2 focus-visible:ring-offset-canopy-bg disabled:pointer-events-none disabled:opacity-50 select-none';
   
   const variants = {
-    default: 'bg-[#43D391] text-[#06251A] font-semibold shadow hover:bg-[#54e7ad] active:scale-[0.98]',
-    primary: 'bg-[#43D391] text-[#06251A] font-semibold shadow hover:bg-[#54e7ad] active:scale-[0.98]',
-    secondary: 'bg-elevated text-text hover:bg-surface border border-border active:scale-[0.98]',
-    outline: 'border border-border bg-transparent hover:bg-surface text-text active:scale-[0.98]',
-    ghost: 'bg-transparent text-muted hover:text-text hover:bg-surface',
-    danger: 'bg-rose-600 text-white hover:bg-rose-700 active:scale-[0.98]'
+    default: 'bg-canopy-green text-[#06251A] font-semibold hover:bg-[#4ee0a0]',
+    primary: 'bg-canopy-green text-[#06251A] font-semibold hover:bg-[#4ee0a0]',
+    white: 'bg-white text-black font-semibold hover:bg-canopy-secondary',
+    secondary: 'bg-canopy-surface text-white hover:bg-canopy-elevated border border-canopy-border',
+    outline: 'border border-canopy-border bg-transparent hover:bg-canopy-surface text-canopy-secondary hover:text-white hover:border-canopy-muted',
+    ghost: 'bg-transparent text-canopy-secondary hover:text-white hover:bg-canopy-surface',
+    danger: 'border border-[#F43F5E]/35 bg-[#F43F5E]/10 text-rose-200 hover:bg-[#F43F5E]/20',
+    warning: 'border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 active:scale-[0.98]',
+    ai: 'border border-canopy-ai/35 bg-canopy-ai/10 text-canopy-ai hover:bg-canopy-ai/15'
   };
 
   const sizes = {
     default: 'h-9 px-4 py-2 text-sm',
-    sm: 'h-8 rounded-md px-3 text-xs',
-    lg: 'h-11 rounded-lg px-6 text-base font-semibold',
+    sm: 'h-8 px-3 text-xs',
+    lg: 'h-11 px-6 text-base font-semibold',
     icon: 'h-9 w-9 p-0'
   };
 
@@ -90,14 +93,14 @@ export function Badge({
   children,
   ...props
 }) {
-  const baseStyles = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors';
+  const baseStyles = 'inline-flex items-center rounded px-2 py-0.5 text-xs font-medium transition-colors';
   const variants = {
-    default: 'bg-elevated text-text border border-border',
-    human: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
-    model: 'bg-purple-500/15 text-purple-400 border border-purple-500/30',
-    success: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
-    warning: 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30',
-    error: 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+    default: 'bg-canopy-surface text-canopy-secondary border border-canopy-border',
+    human: 'bg-canopy-surface text-canopy-secondary border border-canopy-border',
+    model: 'bg-canopy-ai/10 text-canopy-ai border border-canopy-ai/30',
+    success: 'bg-canopy-green/10 text-canopy-green border border-canopy-green/30',
+    warning: 'bg-amber-500/10 text-amber-300 border border-amber-500/30',
+    error: 'bg-[#F43F5E]/10 text-rose-200 border border-[#F43F5E]/30'
   };
 
   return (
@@ -110,7 +113,7 @@ export function Badge({
 export function Card({ className = '', children, ...props }) {
   return (
     <div
-      className={cn('rounded-xl border border-border bg-surface text-text shadow-sm transition-all', className)}
+      className={cn('rounded-md border border-canopy-border bg-canopy-surface text-canopy-text', className)}
       {...props}
     >
       {children}
@@ -124,7 +127,7 @@ export function IconButton({ className = '', label, children, ...props }) {
       aria-label={label}
       title={label}
       className={cn(
-        'inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface text-muted transition-colors hover:border-primary hover:text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50',
+        'inline-flex h-9 w-9 items-center justify-center rounded-md border border-canopy-border bg-canopy-surface text-canopy-secondary transition-colors hover:border-canopy-muted hover:bg-canopy-elevated hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy-green/45 focus-visible:ring-offset-2 focus-visible:ring-offset-canopy-bg disabled:pointer-events-none disabled:opacity-50',
         className
       )}
       {...props}
@@ -138,7 +141,7 @@ export function Input({ className = '', ...props }) {
   return (
     <input
       className={cn(
-        'w-full rounded-lg border border-border bg-elevated px-3.5 py-2 text-sm text-text outline-none placeholder:text-muted focus:border-primary focus:ring-1 focus:ring-primary transition-all',
+        'w-full rounded-md border border-canopy-border bg-canopy-elevated px-3.5 py-2 text-sm text-white outline-none placeholder:text-canopy-muted focus:border-canopy-green focus:ring-1 focus:ring-canopy-green transition-colors',
         className
       )}
       {...props}
@@ -150,7 +153,7 @@ export function Textarea({ className = '', ...props }) {
   return (
     <textarea
       className={cn(
-        'w-full rounded-lg border border-border bg-elevated px-3.5 py-2 text-sm text-text outline-none placeholder:text-muted focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none',
+        'w-full rounded-md border border-canopy-border bg-canopy-elevated px-3.5 py-2 text-sm text-white outline-none placeholder:text-canopy-muted focus:border-canopy-green focus:ring-1 focus:ring-canopy-green transition-colors resize-none',
         className
       )}
       {...props}
@@ -160,7 +163,7 @@ export function Textarea({ className = '', ...props }) {
 
 export function Panel({ className = '', children, ...props }) {
   return (
-    <section className={cn('border border-border bg-surface rounded-xl overflow-hidden', className)} {...props}>
+    <section className={cn('border border-canopy-border bg-canopy-surface rounded-md overflow-hidden', className)} {...props}>
       {children}
     </section>
   );
@@ -168,7 +171,7 @@ export function Panel({ className = '', children, ...props }) {
 
 export function PanelHeader({ className = '', children, ...props }) {
   return (
-    <div className={cn('border-b border-border px-4 py-3 text-sm font-semibold text-text flex items-center justify-between', className)} {...props}>
+    <div className={cn('border-b border-canopy-border px-4 py-3 text-sm font-semibold text-white flex items-center justify-between', className)} {...props}>
       {children}
     </div>
   );
@@ -177,32 +180,33 @@ export function PanelHeader({ className = '', children, ...props }) {
 export function PropertyRow({ label, value, mono = false, className = '' }) {
   return (
     <div className={cn('space-y-1', className)}>
-      <div className="text-xs text-muted font-medium">{label}</div>
-      <div className={cn('break-all text-xs text-text', mono && 'font-mono')}>{value || 'None'}</div>
+      <div className="text-xs text-canopy-muted font-medium">{label}</div>
+      <div className={cn('break-all text-xs text-white', mono && 'font-mono')}>{value || 'None'}</div>
     </div>
   );
 }
 
 export function StatusDot({ status = 'active', className = '' }) {
   const colors = {
-    active: 'bg-emerald-500 shadow-emerald-500/50',
-    proposed: 'bg-amber-500 shadow-amber-500/50',
-    error: 'bg-rose-500 shadow-rose-500/50',
-    inactive: 'bg-zinc-500'
+    active: 'bg-canopy-green shadow-canopy-green/50',
+    proposed: 'bg-purple-400 shadow-purple-400/50',
+    warning: 'bg-amber-400 shadow-amber-400/50',
+    error: 'bg-rose-400 shadow-rose-400/50',
+    inactive: 'bg-canopy-muted'
   };
   return <span className={cn('inline-block h-2 w-2 rounded-full shadow-sm', colors[status] || colors.inactive, className)} />;
 }
 
 export function Skeleton({ className = '', ...props }) {
-  return <div className={cn('animate-pulse rounded-lg bg-elevated/60', className)} {...props} />;
+  return <div className={cn('animate-pulse rounded-md bg-canopy-elevated/60', className)} {...props} />;
 }
 
 export function EmptyState({ icon = null, title, description, action = null, className = '' }) {
   return (
-    <div className={cn('p-6 text-center text-sm text-muted rounded-xl border border-dashed border-border bg-surface/50', className)}>
-      {icon ? <div className="mb-3 flex justify-center text-muted">{icon}</div> : null}
-      <div className="font-semibold text-text">{title}</div>
-      {description ? <p className="mt-1.5 text-xs text-muted max-w-sm mx-auto leading-relaxed">{description}</p> : null}
+    <div className={cn('rounded-md border border-canopy-border bg-canopy-surface/60 p-6 text-center text-sm text-canopy-secondary', className)}>
+      {icon ? <div className="mb-3 flex justify-center text-canopy-muted">{icon}</div> : null}
+      <div className="font-semibold text-white">{title}</div>
+      {description ? <p className="mt-1.5 text-xs text-canopy-secondary max-w-sm mx-auto leading-relaxed">{description}</p> : null}
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
@@ -210,8 +214,8 @@ export function EmptyState({ icon = null, title, description, action = null, cla
 
 export function LoadingState({ label = 'Loading...', className = '' }) {
   return (
-    <div className={cn('flex items-center justify-center p-8 text-sm text-muted gap-2', className)}>
-      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    <div className={cn('flex items-center justify-center p-8 text-sm text-canopy-secondary gap-2.5', className)}>
+      <div className="h-4 w-4 animate-spin rounded-full border-2 border-canopy-green border-t-transparent" />
       <span>{label}</span>
     </div>
   );
@@ -219,9 +223,9 @@ export function LoadingState({ label = 'Loading...', className = '' }) {
 
 export function ErrorState({ message, retry = null, className = '' }) {
   return (
-    <div className={cn('p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 text-sm flex items-center justify-between', className)}>
+    <div className={cn('flex items-center justify-between gap-3 rounded-md border border-[#F43F5E]/30 bg-[#F43F5E]/10 p-4 text-sm text-rose-200', className)}>
       <span>{message || 'An error occurred.'}</span>
-      {retry ? <Button size="sm" variant="outline" className="border-rose-500/30 hover:bg-rose-500/20" onClick={retry}>Retry</Button> : null}
+      {retry ? <Button size="sm" variant="outline" className="border-[#F43F5E]/30 text-rose-200 hover:bg-[#F43F5E]/20" onClick={retry}>Retry</Button> : null}
     </div>
   );
 }

@@ -79,6 +79,17 @@ export class CanopyApiClient {
     return this.request(`/projects/${projectId}`);
   }
 
+  async updateProject(projectId, input) {
+    return this.request(`/projects/${projectId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input)
+    });
+  }
+
+  async archiveProject(projectId) {
+    return this.request(`/projects/${projectId}`, { method: 'DELETE' });
+  }
+
   async listTokens() {
     return this.request('/me/tokens');
   }
@@ -92,6 +103,81 @@ export class CanopyApiClient {
 
   async revokeToken(tokenId) {
     return this.request(`/me/tokens/${tokenId}`, { method: 'DELETE' });
+  }
+
+  // ── Phase 11: Profile & Activity ───────────────────────────────────────────
+  async getProfile() {
+    return this.request('/me/profile');
+  }
+
+  async updateProfile(input) {
+    return this.request('/me/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(input)
+    });
+  }
+
+  async getActivity(query = {}) {
+    const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value != null));
+    return this.request(`/me/activity${params.size ? `?${params}` : ''}`);
+  }
+
+  // ── Phase 12: Notifications ────────────────────────────────────────────────
+  async listNotifications(query = {}) {
+    const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value != null));
+    return this.request(`/me/notifications${params.size ? `?${params}` : ''}`);
+  }
+
+  async getUnreadNotificationCount() {
+    return this.request('/me/notifications/unread-count');
+  }
+
+  async markNotificationRead(notificationId) {
+    return this.request(`/me/notifications/${notificationId}/read`, {
+      method: 'PATCH'
+    });
+  }
+
+  async markAllNotificationsRead() {
+    return this.request('/me/notifications/mark-all-read', {
+      method: 'POST'
+    });
+  }
+
+  // ── Phase 12: Saved Items ──────────────────────────────────────────────────
+  async listSavedItems(query = {}) {
+    const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value != null));
+    return this.request(`/me/saved-items${params.size ? `?${params}` : ''}`);
+  }
+
+  async saveItem(input) {
+    return this.request('/me/saved-items', {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+  }
+
+  async unsaveItem(savedItemId) {
+    return this.request(`/me/saved-items/${savedItemId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  // ── Phase 13: Settings ─────────────────────────────────────────────────────
+  async getSettings() {
+    return this.request('/me/settings');
+  }
+
+  async updateSettings(input) {
+    return this.request('/me/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(input)
+    });
+  }
+
+  // ── Phase 14: Security ─────────────────────────────────────────────────────
+  async getSecurityStatus() {
+    return this.request('/me/security');
   }
 
   async forkProject(projectId, input) {
@@ -137,8 +223,20 @@ export class CanopyApiClient {
     return this.request(`/projects/${projectId}/lineage`);
   }
 
+  async listProjectVersions(projectId) {
+    return this.request(`/projects/${projectId}/versions`);
+  }
+
   async getVersion(versionId) {
     return this.request(`/versions/${versionId}`);
+  }
+
+  async listProjectAssets(projectId) {
+    return this.request(`/projects/${projectId}/assets`);
+  }
+
+  async getAsset(assetId) {
+    return this.request(`/assets/${assetId}`);
   }
 
   async getAssetUrl(assetId) {
@@ -173,6 +271,10 @@ export class CanopyApiClient {
     return this.request(`/projects/${projectId}/memories${params.size ? `?${params}` : ''}`);
   }
 
+  async getMemory(memoryId) {
+    return this.request(`/memories/${memoryId}`);
+  }
+
   async searchHistory(projectId, query = {}) {
     const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value != null));
     return this.request(`/projects/${projectId}/history/search${params.size ? `?${params}` : ''}`);
@@ -198,6 +300,14 @@ export class CanopyApiClient {
       method: 'POST',
       body: JSON.stringify(input)
     });
+  }
+
+  async listCopilotConversations(projectId) {
+    return this.request(`/projects/${projectId}/copilot/conversations`);
+  }
+
+  async getCopilotConversation(conversationId) {
+    return this.request(`/copilot/conversations/${conversationId}`);
   }
 
   async streamCopilot(projectId, input, { signal, onEvent } = {}) {
